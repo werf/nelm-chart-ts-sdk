@@ -1,5 +1,5 @@
 {
-  "name": "@nelm/types",
+  "name": "@nelm/ts-chart-sdk",
   "version": "0.1.0",
   "description": "TypeScript type definitions for Nelm charts",
   "main": "dist/index.js",
@@ -24,8 +24,11 @@
   "license": "Apache-2.0",
   "repository": {
     "type": "git",
-    "url": "https://github.com/werf/nelm.git",
-    "directory": "ts/nelm-types"
+    "url": "https://github.com/werf/nelm-ts-chart-sdk.git"
+  },
+  "homepage": "https://github.com/werf/nelm-ts-chart-sdk#readme",
+  "bugs": {
+    "url": "https://github.com/werf/nelm-ts-chart-sdk/issues"
   },
   "devDependencies": {
     "typescript": "^5.0.0"
