@@ -25,7 +25,7 @@ export interface ChartMetadata {
   Icon: string;
   APIVersion: string;
   Condition: string;
-  Tags: string;
+  Tags: string[];
   Type: string;
   Keywords: string[];
   Sources: string[];
