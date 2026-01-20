@@ -1,6 +1,6 @@
 # @nelm/chart-ts-sdk
 
-The Nelm TypeScript SDK for generating Kubernetes manifests with TypeScript.
+The Nelm TypeScript SDK for generating Kubernetes manifests with TypeScript instead of Helm templates.
 
 ## Install
 
