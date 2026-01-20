@@ -1,6 +1,6 @@
-# @nelm/ts-chart-sdk
+# @nelm/chart-ts-sdk
 
-TypeScript type definitions for Nelm charts
+The Nelm TypeScript SDK for generating Kubernetes manifests with TypeScript.
 
 ## Install
 
@@ -53,33 +53,34 @@ export function selectorLabels($: RenderContext): Record<string, string> {
     };
 }
 
-const newDeployment = (ctx: RenderContext) => {
-    const name = fullname(ctx);
+const newDeployment = ($: RenderContext) => {
+    const name = fullname($);
+
     return {
         apiVersion: 'apps/v1',
         kind: 'Deployment',
         metadata: {
-            name,
-            labels: labels(ctx),
+            name: name,
+            labels: labels($),
         },
         spec: {
-            replicas: ctx.Values.replicaCount ?? 1,
+            replicas: $.Values.replicaCount ?? 1,
             selector: {
-                matchLabels: selectorLabels(ctx),
+                matchLabels: selectorLabels($),
             },
             template: {
                 metadata: {
-                    labels: selectorLabels(ctx),
+                    labels: selectorLabels($),
                 },
                 spec: {
                     containers: [
                         {
                             name: name,
-                            image: `${ctx.Values.image?.repository}:${ctx.Values.image?.tag}`,
+                            image: `${$.Values.image?.repository}:${$.Values.image?.tag}`,
                             ports: [
                                 {
                                     name: 'http',
-                                    containerPort: ctx.Values.service?.port ?? 80,
+                                    containerPort: $.Values.service?.port ?? 80,
                                 },
                             ],
                         },
@@ -90,33 +91,12 @@ const newDeployment = (ctx: RenderContext) => {
     };
 }
 
-export function newService(ctx: RenderContext): object {
-    return {
-        apiVersion: 'v1',
-        kind: 'Service',
-        metadata: {
-            name: fullname(ctx),
-            labels: labels(ctx),
-        },
-        spec: {
-            type: ctx.Values.service?.type ?? 'ClusterIP',
-            ports: [
-                {
-                    port: ctx.Values.service?.port ?? 80,
-                    targetPort: 'http',
-                },
-            ],
-            selector: selectorLabels(ctx),
-        },
-    };
-}
-
-export function render(ctx: RenderContext): RenderResult {
+export function render($: RenderContext): RenderResult {
     const result: RenderResult = {
         manifests: []
     }
 
-    result.manifests.push(newDeployment(ctx));
+    result.manifests.push(newDeployment($));
 
     return result
 }
