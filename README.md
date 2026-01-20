@@ -5,7 +5,7 @@ The Nelm TypeScript SDK for generating Kubernetes manifests with TypeScript inst
 ## Install
 
 ```
-npm install @nelm/ts-chart-sdk
+npm install @nelm/chart-ts-sdk
 ```
 
 ## Example
