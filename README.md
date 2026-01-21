@@ -11,7 +11,7 @@ npm install @nelm/chart-ts-sdk
 ## Example
 
 ```ts
-import {ChartMetadata, RenderContext, RenderResult} from "@nelm/types";
+import {ChartMetadata, RenderContext, RenderResult} from "@nelm/chart-ts-skd";
 
 const newDeployment = ($: RenderContext) => {
     const name = fullname($);
