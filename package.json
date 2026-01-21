@@ -31,6 +31,10 @@
   "bugs": {
     "url": "https://github.com/werf/nelm-chart-ts-sdk/issues"
   },
+  "contributors": [
+    "ilya-lesikov",
+    "alexey-igrychev"
+  ],
   "devDependencies": {
     "typescript": "^5.0.0"
   }
