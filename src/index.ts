@@ -1,1 +1,2 @@
-export * from './types'
+export * from './utils/index'
+export * from './types/index';

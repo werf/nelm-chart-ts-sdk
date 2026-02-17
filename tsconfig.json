@@ -1,14 +1,13 @@
 {
   "compilerOptions": {
-    "target": "ES2015",
-    "module": "CommonJS",
-    "declaration": true,
-    "declarationMap": true,
+    "target": "ESNext",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
     "strict": true,
     "esModuleInterop": true,
     "skipLibCheck": true,
-    "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "allowJs": false,
     "outDir": "./dist",
     "rootDir": "./src"
   },

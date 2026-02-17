@@ -61,3 +61,5 @@ export interface HelmVersion {
 export interface RenderResult {
     manifests: object[] | null;
 }
+
+export type RenderHandler = ($: RenderContext) => Promise<RenderResult> | RenderResult;
