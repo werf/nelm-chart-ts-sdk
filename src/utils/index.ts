@@ -1,7 +1,9 @@
 import {RenderHandler, RenderContext} from '../types';
+import {parseArgs} from "node:util";
 
 export const runRender = async (handler: RenderHandler)=> {
-    const ctx: RenderContext = await new Response(Deno.stdin.readable).json();
+    const { values } = parseArgs({ args: Deno.args, options: { "ctx": { type: "string" } } })
+    const ctx: RenderContext = await new Response(values.ctx).json();
 
     const result = await handler(ctx);
 
