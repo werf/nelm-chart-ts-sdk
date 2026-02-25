@@ -4,30 +4,24 @@
 
 TypeScript SDK for generating Kubernetes manifests with TypeScript instead of Helm templates.
 Published as `@nelm/chart-ts-sdk`. Users import types (`RenderContext`, `RenderResult`, etc.)
-and the `runRender` helper to build Helm-compatible chart renderers.
+and the `runRender` helper to build chart renderers that run under Deno.
 
-**Runtime**: Deno (uses `Deno.args`), with Node.js built-in modules via `node:` prefix.
+**Runtime**: Deno — uses `Deno.args`, `Deno.readTextFile`, `Deno.writeTextFile`.
 **Module system**: ESM only (`"type": "module"`).
-**License**: Apache-2.0.
+**3 source files total.** Small, focused SDK.
 
 ## Build & Development Commands
 
 ```bash
-# Build (tsup, ESM output + .d.ts)
-npm run build              # tsup src/index.ts --format esm --dts
+npm run build          # tsup src/index.ts --format esm --dts
+npx tsc --noEmit       # Type-check only (no emit)
 
-# Type-check only (no emit)
-npx tsc --noEmit
-
-# No linter configured (no eslint/prettier)
-# No test framework configured (no test files exist)
-# No "dev" or "watch" script configured
+# No linter, formatter, or test framework configured.
+# No dev/watch scripts.
 ```
 
-### Build Output
-- `dist/index.js` — bundled ESM
-- `dist/index.d.ts` — type declarations
-- Built automatically on `prepublishOnly` and `prepack`
+Build output: `dist/index.js` (ESM bundle) + `dist/index.d.ts` (declarations).
+Built automatically on `prepublishOnly` and `prepack`.
 
 ## Project Structure
 
@@ -37,20 +31,18 @@ src/
 ├── types/
 │   └── index.ts          # All interfaces and type aliases
 └── utils/
-    └── index.ts          # runRender() — the main runtime entry point
+    └── index.ts          # runRender() — file I/O, YAML parse/serialize, handler invocation
 ```
 
-- **3 source files total.** This is a small, focused SDK.
-- `dist/` and `node_modules/` are gitignored.
+`dist/` and `node_modules/` are gitignored.
 
 ## TypeScript Configuration
 
-- `target`: ESNext
-- `module`: ESNext
-- `moduleResolution`: Bundler
+- `target`: ESNext, `module`: ESNext, `moduleResolution`: Bundler
 - `strict`: true (all strict checks enabled)
-- `allowJs`: false (TypeScript only)
+- `allowJs`: false, `skipLibCheck`: true, `resolveJsonModule`: true
 - `esModuleInterop`: true
+- `rootDir`: ./src, `outDir`: ./dist
 
 ## Code Style & Conventions
 
@@ -59,49 +51,46 @@ src/
 - **Named imports only** — no default imports, no namespace imports.
 - **Relative paths** for internal modules: `'../types'` (no path aliases).
 - **`node:` prefix** for Node.js built-ins: `"node:util"`.
-- **No consistent quote style** — single quotes for relative, double for `node:` imports.
-  When adding code, prefer single quotes for consistency with the majority.
-- **No semicolon consistency** — some lines have them, some don't.
-  Prefer semicolons when adding new code.
+- **JSR specifiers** for Deno std libs: `"@std/yaml"`.
+- Prefer single quotes. Prefer semicolons.
 
 ```typescript
-// ✅ Correct
+// Correct
 import {RenderHandler, RenderContext} from '../types';
 import {parseArgs} from "node:util";
+import {parse, stringify} from "@std/yaml";
 
-// ❌ Wrong
+// Wrong
 import * as types from '../types';
 import RenderContext from '../types';
 ```
 
 ### Module Organization
 
-- **Barrel exports** via `index.ts` files in each directory.
+- Barrel exports via `index.ts` in each directory.
 - Root `src/index.ts` re-exports everything: `export * from './types/index'`.
-- All public types and functions MUST be exported through the barrel chain.
-- New modules: create a directory with `index.ts`, add `export *` in parent barrel.
+- All public types/functions MUST flow through the barrel chain.
+- New modules: create directory with `index.ts`, add `export *` in parent barrel.
 
 ### Interfaces & Types
 
-- **PascalCase** for interface and type names: `RenderContext`, `ChartMetadata`.
-- **No `I` prefix** — use `Release`, not `IRelease`.
-- **PascalCase properties** for Helm/Kubernetes-compatible structures: `$.Release.Name`,
-  `$.Chart.Version`, `$.Values.replicaCount`. This mirrors Go's exported field naming
-  from the Helm ecosystem.
+- **PascalCase** for interface/type names: `RenderContext`, `ChartMetadata`.
+- **No `I` prefix** — `Release`, not `IRelease`.
+- **PascalCase properties** for Helm/K8s-compatible structures — mirrors Go's exported fields.
 - **camelCase properties** for SDK-internal structures: `manifests` in `RenderResult`.
-- **`export interface`** — always exported, never internal-only.
-- **`export type`** for type aliases: `export type RenderHandler = ...`.
+- **`export interface`** — always exported.
+- **`export type`** for aliases: `export type RenderHandler = ...`.
 
 ```typescript
-// ✅ Helm-compatible interface — PascalCase properties
+// Helm-compatible — PascalCase properties
 export interface Release {
     Name: string;
     Namespace: string;
-    Revision: number;
     IsInstall: boolean;
+    IsUpgrade: boolean;
 }
 
-// ✅ SDK-internal interface — camelCase properties
+// SDK-internal — camelCase properties
 export interface RenderResult {
     manifests: object[] | null;
 }
@@ -109,73 +98,62 @@ export interface RenderResult {
 
 ### Functions
 
-- **`export const` + arrow** for async utility functions: `export const runRender = async (...) => { }`.
-- **`export function`** for synchronous helpers: `export function fullname(...)`.
-- **`$` parameter name** is the conventional shorthand for `RenderContext` in render helpers.
-- **Explicit return types** on exported functions.
-
-```typescript
-// Async runner — arrow function
-export const runRender = async (handler: RenderHandler) => { ... };
-
-// Sync helper — function declaration
-export function trunc(str: string, max: number): string { ... }
-
-// Render helper — $ convention for RenderContext
-export function fullname($: RenderContext): string { ... }
-```
+- `export const` + arrow for async functions: `export const runRender = async (...) => { }`.
+- `export function` for synchronous helpers.
+- `$` is the conventional parameter name for `RenderContext`.
+- Explicit return types on exported functions.
 
 ### Null Handling
 
-- **`| null`** in type definitions (not `| undefined`): `manifests: object[] | null`.
-- **Nullish coalescing `??`** for defaults: `$.Values.replicaCount ?? 1`.
-- **Optional chaining `?.`** for nested access: `$.Values.image?.repository`.
+- `| null` in types (not `| undefined`): `manifests: object[] | null`.
+- Nullish coalescing `??` for defaults: `$.Values.replicaCount ?? 1`.
+- Optional chaining `?.` for nested access: `$.Values.image?.repository`.
 
 ### Error Handling
 
-- No custom error classes. No try/catch patterns in the current codebase.
-- `runRender` does not wrap handler calls in try/catch — errors propagate to the runtime.
-
-### Comments & Documentation
-
-- **No JSDoc.** No inline comments in source files.
-- Keep it minimal — the code is self-documenting given its small size.
+- No custom error classes. Errors thrown directly via `new Error(...)`.
+- No try/catch in SDK — errors propagate to Deno runtime.
+- `runRender` validates handler output: throws if `manifests` is null/empty.
 
 ### Naming Conventions
 
-| Element              | Convention  | Example                        |
-|----------------------|-------------|--------------------------------|
-| Interfaces/Types     | PascalCase  | `RenderContext`, `RenderResult`|
-| Helm-compat fields   | PascalCase  | `Release.Name`, `Chart.Version`|
-| SDK-internal fields  | camelCase   | `manifests`                    |
-| Functions            | camelCase   | `runRender`, `fullname`        |
-| Variables/params     | camelCase   | `handler`, `ctx`               |
-| RenderContext param  | `$`         | `function labels($: RenderContext)` |
-| Directories          | lowercase   | `types/`, `utils/`             |
+| Element              | Convention  | Example                              |
+|----------------------|-------------|--------------------------------------|
+| Interfaces/Types     | PascalCase  | `RenderContext`, `RenderResult`      |
+| Helm-compat fields   | PascalCase  | `Release.Name`, `Chart.Version`      |
+| SDK-internal fields  | camelCase   | `manifests`                          |
+| Functions            | camelCase   | `runRender`, `fullname`              |
+| Variables/params     | camelCase   | `handler`, `ctx`                     |
+| RenderContext param  | `$`         | `function labels($: RenderContext)`  |
+| Directories          | lowercase   | `types/`, `utils/`                   |
 
 ### Async Patterns
 
-- **async/await** preferred over raw Promises.
-- `RenderHandler` supports both sync and async: `($: RenderContext) => Promise<RenderResult> | RenderResult`.
+- async/await preferred over raw Promises.
+- `RenderHandler` supports both sync and async return.
 
-## Communication Protocol
+## Runtime Behavior
 
-`runRender` outputs results via `console.log` with a specific prefix:
+`runRender` reads YAML input from a file and writes YAML output to a file:
+
+1. Parses `--input-file` and `--output-file` from `Deno.args`
+2. Reads input file → deserializes YAML → `RenderContext`
+3. Calls handler, validates non-empty `manifests` array
+4. Serializes manifests to multi-document YAML (joined by `---\n`)
+5. Writes to output file
+
 ```
-NELM_RENDER_RESULT:<json>
+deno run render.ts --input-file context.yaml --output-file manifests.yaml
 ```
-Do NOT change this prefix — it is the IPC contract with the Nelm runtime.
+
+Do NOT change the file-based I/O contract — it is the IPC mechanism with the Nelm runtime.
 
 ## Dependencies
 
-### Dev Dependencies Only
-- `typescript` ^5.0.0 — type checking
-- `tsup` ^8.5.1 — bundler (esbuild-based)
-- `@types/node` ^25.2.3 — Node.js type definitions
-- `@types/deno` ^2.5.0 — Deno type definitions
+- **Runtime**: `@std/yaml` (via `npm:@jsr/std__yaml`) — YAML parse/serialize
+- **Dev**: `typescript`, `tsup`, `@types/node`, `@types/deno`
 
-### No Runtime Dependencies
-This package has zero runtime dependencies. Keep it that way.
+Keep runtime dependencies minimal. Do not add new ones without explicit approval.
 
 ## Adding New Code
 
@@ -187,10 +165,8 @@ This package has zero runtime dependencies. Keep it that way.
 
 ## Key Gotchas
 
-- **Deno runtime**: Code runs under Deno, not Node.js. `Deno.args` is used directly.
-- **No test infrastructure**: There are no tests. If adding tests, choose a Deno-compatible
-  test runner and document the command here.
-- **No linter/formatter**: No eslint or prettier configured. Follow conventions in this doc.
-- **PascalCase properties**: The Helm-compatible interfaces use Go-style PascalCase field names.
-  This is intentional — do not "fix" it to camelCase.
-- **Zero runtime deps**: Do not add runtime dependencies without explicit approval.
+- **Deno runtime**: Code runs under Deno, not Node.js. `Deno.*` APIs are used directly.
+- **No tests**: No test infrastructure exists. If adding, choose a Deno-compatible runner.
+- **No linter/formatter**: Follow conventions in this doc.
+- **PascalCase properties**: Helm-compatible interfaces use Go-style naming. Do not "fix" to camelCase.
+- **`@std/yaml` is a JSR package**: Imported as `@std/yaml`, resolved via `@jsr:registry` in `.npmrc`.
