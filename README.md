@@ -198,17 +198,25 @@ Capabilities:
     Version: v1.33.6+k3s1
 Chart:
   APIVersion: v2
-  Annotations: null
-  AppVersion: ""
-  Condition: ""
-  Description: ""
-  Home: ""
-  Icon: ""
-  Keywords: null
+  Annotations:
+    app.kubernetes.io/managed-by: Helm
+  AppVersion: 1.27.4
+  Condition: nginx.enabled
+  Description: An example Helm chart for Kubernetes
+  Home: https://github.com/werf/nelm-chart-ts-sdk
+  Icon: https://helm.sh/img/helm.svg
+  Keywords:
+    - nginx
+    - webserver
+  Maintainers:
+    - Email: maintainer@example.com
+      Name: John Doe
+      URL: https://example.com
   Name: ts-chart
-  Sources: null
-  Tags: ""
-  Type: ""
+  Sources:
+    - https://github.com/werf/nelm-chart-ts-sdk
+  Tags: frontend
+  Type: application
   Version: 0.1.0
 Files:
   .gitignore: ""
@@ -220,7 +228,6 @@ Release:
   Namespace: ts-chart
   Revision: 171
   Service: Helm
-Runtime: {}
 Values:
   image:
     repository: nginx
