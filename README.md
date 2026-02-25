@@ -11,7 +11,7 @@ npm install @nelm/chart-ts-sdk
 ## Example
 
 ```ts
-import {ChartMetadata, RenderContext, RenderResult} from "@nelm/chart-ts-sdk";
+import {RenderContext, RenderResult, runRender} from "@nelm/chart-ts-sdk";
 
 const newDeployment = ($: RenderContext) => {
     const name = fullname($);
@@ -51,12 +51,12 @@ const newDeployment = ($: RenderContext) => {
     };
 }
 
-export function trunc(str: string, max: number): string {
+function trunc(str: string, max: number): string {
     if (str.length <= max) return str;
     return str.slice(0, max).replace(/-+$/, '');
 }
 
-export function fullname($: RenderContext): string {
+function fullname($: RenderContext): string {
     if ($.Values.fullnameOverride) {
         return trunc($.Values.fullnameOverride, 63);
     }
@@ -70,26 +70,24 @@ export function fullname($: RenderContext): string {
     return trunc(`${$.Release.Name}-${chartName}`, 63);
 }
 
-export function labels($: RenderContext): Record<string, string> {
+function labels($: RenderContext): Record<string, string> {
     return {
         'app.kubernetes.io/name': $.Chart.Name,
         'app.kubernetes.io/instance': $.Release.Name,
     };
 }
 
-export function selectorLabels($: RenderContext): Record<string, string> {
+function selectorLabels($: RenderContext): Record<string, string> {
     return {
         'app.kubernetes.io/name': $.Chart.Name,
         'app.kubernetes.io/instance': $.Release.Name,
     };
 }
 
-export function render($: RenderContext): RenderResult {
-    const result: RenderResult = {
-        manifests: []
-    }
-
-    result.manifests.push(newDeployment($))
-    return result
+function render($: RenderContext): RenderResult {
+    return {
+        manifests: [newDeployment($)],
+    };
 }
-```
+
+runRender(render);
