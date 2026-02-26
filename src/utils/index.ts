@@ -21,7 +21,7 @@ export const runRender = async (handler: RenderHandler) => {
 
     const result = await handler(ctx);
 
-    if (!result || !result.manifests || !result.manifests.length) {
+    if (!result || !result.manifests || !Array.isArray(result.manifests)) {
         throw new Error("Handler must return an object with a 'manifests' array");
     }
     const yamlResult = result.manifests.map((manifest) => stringify(manifest)).join("---\n");

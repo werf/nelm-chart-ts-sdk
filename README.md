@@ -190,43 +190,41 @@ Capabilities:
   APIVersions:
     - v1
   HelmVersion:
-    go_version: go1.25.5
-    version: v3.14
+    go_version: go1.25.0
+    version: v3.20
   KubeVersion:
     Major: "1"
-    Minor: "33"
-    Version: v1.33.6+k3s1
+    Minor: "35"
+    Version: v1.35.0
 Chart:
   APIVersion: v2
   Annotations:
-    app.kubernetes.io/managed-by: Helm
-  AppVersion: 1.27.4
-  Condition: nginx.enabled
-  Description: An example Helm chart for Kubernetes
-  Home: https://github.com/werf/nelm-chart-ts-sdk
-  Icon: https://helm.sh/img/helm.svg
+    anno: value
+  AppVersion: 1.0.0
+  Condition: mychart.enabled
+  Description: mychart description
+  Home: https://example.org/home
+  Icon: https://example.org/icon
   Keywords:
-    - nginx
-    - webserver
+    - mychart
   Maintainers:
-    - Email: maintainer@example.com
-      Name: John Doe
-      URL: https://example.com
-  Name: ts-chart
+    - Email: john@example.com
+      Name: john
+      URL: https://example.com/john
+  Name: mychart
   Sources:
-    - https://github.com/werf/nelm-chart-ts-sdk
-  Tags: frontend
+    - https://example.org/mychart
+  Tags: mychart
   Type: application
-  Version: 0.1.0
+  Version: 1.0.0
 Files:
-  .gitignore: ""
-  .helmignore: ""
+  myfile: "content"
 Release:
   IsInstall: false
   IsUpgrade: true
-  Name: ts-chart
-  Namespace: ts-chart
-  Revision: 171
+  Name: mychart
+  Namespace: mychart
+  Revision: 2
   Service: Helm
 Values:
   image:

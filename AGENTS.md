@@ -113,7 +113,7 @@ export interface RenderResult {
 
 - No custom error classes. Errors thrown directly via `new Error(...)`.
 - No try/catch in SDK — errors propagate to Deno runtime.
-- `runRender` validates handler output: throws if `manifests` is null/empty.
+- `runRender` validates handler output: throws if `manifests` is not an array.
 
 ### Naming Conventions
 
