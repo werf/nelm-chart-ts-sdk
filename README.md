@@ -103,12 +103,99 @@ The full context passed to your handler. By convention, the parameter is named `
 
 ```ts
 interface RenderContext {
-    Values: Record<string, any>;      // User-supplied values (values.yaml)
+    Values: Values;                    // Merged values (values.yaml + overrides + werf service values)
     Release: Release;                  // Release metadata
     Chart: ChartMetadata;              // Chart.yaml contents
     Capabilities: Capabilities;        // Cluster capabilities
     Runtime: Record<string, any>;      // Runtime-specific data
     Files: Record<string, Uint8Array>; // Raw chart files
+}
+```
+
+### `Values`
+
+```ts
+interface Values extends Record<string, any> {
+    werf?: WerfValues;
+    global?: GlobalValues;
+    dockerconfigjson?: string;  // Base64-encoded Docker config (when --set-docker-config-json-value is used)
+}
+```
+
+### `WerfValues`
+
+Werf service values available at `$.Values.werf`. Contains project metadata and legacy per-image references.
+
+```ts
+interface WerfValues {
+    name: string;              // Project name
+    version: string;           // Werf version
+    repo: string;              // Container registry repo
+    commit: WerfCommit;        // Git commit info
+    image: Record<string, string>;  // Legacy: image name → full image reference
+    tag: Record<string, string>;    // Legacy: image name → tag
+    namespace?: string;
+    env?: string;
+    is_stub?: boolean;
+    stub_image?: string;
+    is_nameless_image?: boolean;
+    nameless_image?: string;
+}
+
+interface WerfCommit {
+    hash: string;
+    date: {
+        human: string;   // Human-readable date string
+        unix: number;    // Unix timestamp
+    };
+}
+```
+
+### `GlobalValues`
+
+Global values available at `$.Values.global`. The `werf` field here contains typed `images` instead of the legacy `image`/`tag` maps.
+
+```ts
+interface GlobalValues {
+    werf: GlobalWerfValues;
+    env?: string;
+}
+
+interface GlobalWerfValues {
+    name: string;
+    version: string;
+    repo: string;
+    commit: WerfCommit;
+    images: Record<string, WerfImageInfo>;  // Image name → detailed image info
+    namespace?: string;
+    env?: string;
+    is_stub?: boolean;
+    stub_image?: string;
+    is_nameless_image?: boolean;
+    nameless_image?: string;
+}
+```
+
+### `WerfImageInfo`
+
+Per-image details available at `$.Values.global.werf.images.<imageName>`.
+
+```ts
+interface WerfImageInfo {
+    registry: string;          // e.g. "registry.example.com"
+    namespace: string;         // e.g. "myproject/myimage"
+    name: string;              // e.g. "myimage"
+    tag: string;
+    digest: string;
+    tag_digest: string;        // "tag@digest"
+    image: string;             // Full registry/namespace reference
+    repository: string;        // "namespace/name"
+    ref: string;               // "image:tag@digest"
+    ref_tag: string;           // "image:tag"
+    repository_ref: string;    // "repository:tag@digest"
+    repository_tag: string;    // "repository:tag"
+    name_ref: string;          // "name:tag@digest"
+    name_tag: string;          // "name:tag"
 }
 ```
 
@@ -227,6 +314,45 @@ Release:
   Revision: 2
   Service: Helm
 Values:
+  werf:
+    name: myproject
+    version: v2.35.0
+    repo: registry.example.com/myproject
+    commit:
+      hash: abc1234
+      date:
+        human: "2026-04-10 12:00:00 +0000 UTC"
+        unix: 1776168000
+    image:
+      backend: "registry.example.com/myproject:abc1234-1776168000"
+    tag:
+      backend: "abc1234-1776168000"
+  global:
+    werf:
+      name: myproject
+      version: v2.35.0
+      repo: registry.example.com/myproject
+      commit:
+        hash: abc1234
+        date:
+          human: "2026-04-10 12:00:00 +0000 UTC"
+          unix: 1776168000
+      images:
+        backend:
+          registry: registry.example.com
+          namespace: myproject
+          name: backend
+          tag: abc1234-1776168000
+          digest: "sha256:deadbeef"
+          tag_digest: "abc1234-1776168000@sha256:deadbeef"
+          image: registry.example.com/myproject
+          repository: myproject/backend
+          ref: "registry.example.com/myproject:abc1234-1776168000@sha256:deadbeef"
+          ref_tag: "registry.example.com/myproject:abc1234-1776168000"
+          repository_ref: "myproject/backend:abc1234-1776168000@sha256:deadbeef"
+          repository_tag: "myproject/backend:abc1234-1776168000"
+          name_ref: "backend:abc1234-1776168000@sha256:deadbeef"
+          name_tag: "backend:abc1234-1776168000"
   image:
     repository: nginx
     tag: latest
