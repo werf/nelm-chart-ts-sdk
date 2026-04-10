@@ -25,22 +25,7 @@ export interface WerfImageInfo {
     name_tag: string;
 }
 
-export interface WerfValues {
-    name: string;
-    version: string;
-    repo: string;
-    commit: WerfCommit;
-    image: Record<string, string>;
-    tag: Record<string, string>;
-    namespace?: string;
-    env?: string;
-    is_stub?: boolean;
-    stub_image?: string;
-    is_nameless_image?: boolean;
-    nameless_image?: string;
-}
-
-export interface GlobalWerfValues {
+export interface WerfServiceValues {
     name: string;
     version: string;
     repo: string;
@@ -50,28 +35,30 @@ export interface GlobalWerfValues {
     env?: string;
     is_stub?: boolean;
     stub_image?: string;
-    is_nameless_image?: boolean;
-    nameless_image?: string;
 }
 
 export interface GlobalValues {
-    werf: GlobalWerfValues;
-    env?: string;
+    werf: WerfServiceValues;
 }
 
-export interface Values extends Record<string, any> {
-    werf?: WerfValues;
-    global?: GlobalValues;
-    dockerconfigjson?: string;
+export interface WerfValues extends Record<string, any> {
+    global: GlobalValues;
 }
 
-export interface RenderContext {
-    Values: Values;
+export interface BaseRenderContext {
     Release: Release;
     Chart: ChartMetadata;
     Capabilities: Capabilities;
     Runtime: Record<string, any>;
     Files: Record<string, Uint8Array>;
+}
+
+export interface RenderContext<ValuesType = Record<string, any>> extends BaseRenderContext {
+    Values: ValuesType;
+}
+
+export interface WerfRenderContext extends RenderContext {
+    Values: WerfValues;
 }
 
 export interface Release {
@@ -129,4 +116,4 @@ export interface RenderResult {
     manifests: object[] | null;
 }
 
-export type RenderHandler = ($: RenderContext) => Promise<RenderResult> | RenderResult;
+export type RenderHandler<CtxType extends BaseRenderContext = RenderContext> = ($: CtxType) => Promise<RenderResult> | RenderResult;

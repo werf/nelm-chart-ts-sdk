@@ -1,8 +1,8 @@
-import {RenderHandler, RenderContext} from '../types';
+import {RenderHandler, RenderContext, BaseRenderContext} from '../types';
 import {parseArgs} from "node:util";
 import {parse, stringify} from "@std/yaml";
 
-export const runRender = async (handler: RenderHandler) => {
+export async function render<RenderCtxType extends BaseRenderContext = RenderContext> (handler: RenderHandler<RenderCtxType>) {
     const {values} = parseArgs({
         args: Deno.args, options: {
             "input-file": {type: "string"},
@@ -17,7 +17,7 @@ export const runRender = async (handler: RenderHandler) => {
     }
 
     const inputData = await Deno.readTextFile(inputFile);
-    const ctx = parse(inputData) as RenderContext;
+    const ctx = parse(inputData) as RenderCtxType;
 
     const result = await handler(ctx);
 

@@ -13,9 +13,9 @@ npm install @nelm/chart-ts-sdk
 ## Quick Start
 
 ```ts
-import {RenderContext, RenderResult, runRender} from "@nelm/chart-ts-sdk";
+import {RenderContext, RenderResult, render} from "@nelm/chart-ts-sdk";
 
-function render($: RenderContext): RenderResult {
+function generate($: RenderContext): RenderResult {
     return {
         manifests: [
             {
@@ -66,12 +66,12 @@ function render($: RenderContext): RenderResult {
     };
 }
 
-runRender(render);
+render(generate);
 ```
 
 ## How It Works
 
-`runRender` is the entry point. It:
+`render` is the entry point. It:
 
 1. Parses CLI arguments `--input-file` and `--output-file`
 2. Reads the input file as YAML and deserializes it into a `RenderContext`
@@ -85,25 +85,25 @@ deno run render.ts --input-file context.yaml --output-file manifests.yaml
 
 ## API Reference
 
-### `runRender(handler: RenderHandler): Promise<void>`
+### `render(handler: RenderHandler): Promise<void>`
 
-Runs the render pipeline. Accepts a handler function that receives `RenderContext` and returns `RenderResult`.
+Runs the render pipeline. Accepts a handler function that receives a render context and returns `RenderResult`.
 
 ### `RenderHandler`
 
 ```ts
-type RenderHandler = ($: RenderContext) => Promise<RenderResult> | RenderResult;
+type RenderHandler<CtxType extends BaseRenderContext = RenderContext> = ($: CtxType) => Promise<RenderResult> | RenderResult;
 ```
 
-The handler can be sync or async.
+The handler can be sync or async. The generic parameter allows using a narrower context type like `WerfRenderContext`.
 
 ### `RenderContext`
 
-The full context passed to your handler. By convention, the parameter is named `$`.
+The context passed to your handler. By convention, the parameter is named `$`.
 
 ```ts
-interface RenderContext {
-    Values: Values;                    // Merged values (values.yaml + overrides + werf service values)
+interface RenderContext<ValuesType = Record<string, any>> extends BaseRenderContext {
+    Values: ValuesType;                // Merged values (values.yaml + overrides)
     Release: Release;                  // Release metadata
     Chart: ChartMetadata;              // Chart.yaml contents
     Capabilities: Capabilities;        // Cluster capabilities
@@ -112,67 +112,42 @@ interface RenderContext {
 }
 ```
 
-### `Values`
+### `WerfRenderContext`
+
+Render context with werf service values pre-typed. Use this when deploying with werf.
 
 ```ts
-interface Values extends Record<string, any> {
-    werf?: WerfValues;
-    global?: GlobalValues;
-    dockerconfigjson?: string;  // Base64-encoded Docker config (when --set-docker-config-json-value is used)
+interface WerfRenderContext {
+    Values: WerfValues;                // Werf-typed values (see below)
+    Release: Release;
+    Chart: ChartMetadata;
+    Capabilities: Capabilities;
+    Runtime: Record<string, any>;
+    Files: Record<string, Uint8Array>;
 }
-```
 
-### `WerfValues`
+interface WerfValues extends Record<string, any> {
+    global: {
+        werf: WerfServiceValues;       // Werf service values with typed images
+    };
+}
 
-Werf service values available at `$.Values.werf`. Contains project metadata and legacy per-image references.
-
-```ts
-interface WerfValues {
+interface WerfServiceValues {
     name: string;              // Project name
     version: string;           // Werf version
     repo: string;              // Container registry repo
-    commit: WerfCommit;        // Git commit info
-    image: Record<string, string>;  // Legacy: image name → full image reference
-    tag: Record<string, string>;    // Legacy: image name → tag
-    namespace?: string;
-    env?: string;
-    is_stub?: boolean;
-    stub_image?: string;
-    is_nameless_image?: boolean;
-    nameless_image?: string;
-}
-
-interface WerfCommit {
-    hash: string;
-    date: {
-        human: string;   // Human-readable date string
-        unix: number;    // Unix timestamp
+    commit: {
+        hash: string;
+        date: {
+            human: string;     // Human-readable date string
+            unix: number;      // Unix timestamp
+        };
     };
-}
-```
-
-### `GlobalValues`
-
-Global values available at `$.Values.global`. The `werf` field here contains typed `images` instead of the legacy `image`/`tag` maps.
-
-```ts
-interface GlobalValues {
-    werf: GlobalWerfValues;
-    env?: string;
-}
-
-interface GlobalWerfValues {
-    name: string;
-    version: string;
-    repo: string;
-    commit: WerfCommit;
-    images: Record<string, WerfImageInfo>;  // Image name → detailed image info
+    images: Record<string, WerfImageInfo>;
     namespace?: string;
     env?: string;
     is_stub?: boolean;
     stub_image?: string;
-    is_nameless_image?: boolean;
-    nameless_image?: string;
 }
 ```
 
@@ -264,7 +239,7 @@ interface RenderResult {
 }
 ```
 
-The `manifests` array must be non-empty — `runRender` throws if it's null, undefined, or empty.
+The `manifests` array must be non-empty — `render` throws if it's null, undefined, or empty.
 
 ## Full Example
 
@@ -314,45 +289,6 @@ Release:
   Revision: 2
   Service: Helm
 Values:
-  werf:
-    name: myproject
-    version: v2.35.0
-    repo: registry.example.com/myproject
-    commit:
-      hash: abc1234
-      date:
-        human: "2026-04-10 12:00:00 +0000 UTC"
-        unix: 1776168000
-    image:
-      backend: "registry.example.com/myproject:abc1234-1776168000"
-    tag:
-      backend: "abc1234-1776168000"
-  global:
-    werf:
-      name: myproject
-      version: v2.35.0
-      repo: registry.example.com/myproject
-      commit:
-        hash: abc1234
-        date:
-          human: "2026-04-10 12:00:00 +0000 UTC"
-          unix: 1776168000
-      images:
-        backend:
-          registry: registry.example.com
-          namespace: myproject
-          name: backend
-          tag: abc1234-1776168000
-          digest: "sha256:deadbeef"
-          tag_digest: "abc1234-1776168000@sha256:deadbeef"
-          image: registry.example.com/myproject
-          repository: myproject/backend
-          ref: "registry.example.com/myproject:abc1234-1776168000@sha256:deadbeef"
-          ref_tag: "registry.example.com/myproject:abc1234-1776168000"
-          repository_ref: "myproject/backend:abc1234-1776168000@sha256:deadbeef"
-          repository_tag: "myproject/backend:abc1234-1776168000"
-          name_ref: "backend:abc1234-1776168000@sha256:deadbeef"
-          name_tag: "backend:abc1234-1776168000"
   image:
     repository: nginx
     tag: latest
@@ -365,7 +301,7 @@ Values:
 
 Render script (`render.ts`):
 ```ts
-import {RenderContext, RenderResult, runRender} from "@nelm/chart-ts-sdk";
+import {RenderContext, RenderResult, render} from "@nelm/chart-ts-sdk";
 
 function trunc(str: string, max: number): string {
     if (str.length <= max) return str;
@@ -402,7 +338,7 @@ function selectorLabels($: RenderContext): Record<string, string> {
     };
 }
 
-function render($: RenderContext): RenderResult {
+function generate($: RenderContext): RenderResult {
     const name = fullname($);
 
     return {
@@ -444,7 +380,7 @@ function render($: RenderContext): RenderResult {
     };
 }
 
-runRender(render);
+render(generate);
 ```
 
 Run:
