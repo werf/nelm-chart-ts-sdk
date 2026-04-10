@@ -118,7 +118,7 @@ Render context with werf service values pre-typed. Use this when deploying with 
 
 ```ts
 interface WerfRenderContext {
-    Values: WerfValues;                // Werf-typed values (see below)
+    Values: WerfServiceValues;         // Werf-typed values (see below)
     Release: Release;
     Chart: ChartMetadata;
     Capabilities: Capabilities;
@@ -126,13 +126,13 @@ interface WerfRenderContext {
     Files: Record<string, Uint8Array>;
 }
 
-interface WerfValues extends Record<string, any> {
+interface WerfServiceValues extends Record<string, any> {
     global: {
-        werf: WerfServiceValues;       // Werf service values with typed images
+        werf: WerfInfo;                // Werf project metadata with typed images
     };
 }
 
-interface WerfServiceValues {
+interface WerfInfo {
     name: string;              // Project name
     version: string;           // Werf version
     repo: string;              // Container registry repo

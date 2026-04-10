@@ -25,7 +25,7 @@ export interface WerfImageInfo {
     name_tag: string;
 }
 
-export interface WerfServiceValues {
+export interface WerfInfo {
     name: string;
     version: string;
     repo: string;
@@ -38,10 +38,10 @@ export interface WerfServiceValues {
 }
 
 export interface GlobalValues {
-    werf: WerfServiceValues;
+    werf: WerfInfo;
 }
 
-export interface WerfValues extends Record<string, any> {
+export interface WerfServiceValues extends Record<string, any> {
     global: GlobalValues;
 }
 
@@ -58,7 +58,7 @@ export interface RenderContext<ValuesType = Record<string, any>> extends BaseRen
 }
 
 export interface WerfRenderContext extends RenderContext {
-    Values: WerfValues;
+    Values: WerfServiceValues;
 }
 
 export interface Release {
