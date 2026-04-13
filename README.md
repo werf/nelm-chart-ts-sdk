@@ -13,9 +13,9 @@ npm install @nelm/chart-ts-sdk
 ## Quick Start
 
 ```ts
-import {RenderContext, RenderResult, runRender} from "@nelm/chart-ts-sdk";
+import {RenderContext, RenderResult, render} from "@nelm/chart-ts-sdk";
 
-function render($: RenderContext): RenderResult {
+function generate($: RenderContext): RenderResult {
     return {
         manifests: [
             {
@@ -66,12 +66,12 @@ function render($: RenderContext): RenderResult {
     };
 }
 
-runRender(render);
+render(generate);
 ```
 
 ## How It Works
 
-`runRender` is the entry point. It:
+`render` is the entry point. It:
 
 1. Parses CLI arguments `--input-file` and `--output-file`
 2. Reads the input file as YAML and deserializes it into a `RenderContext`
@@ -85,30 +85,92 @@ deno run render.ts --input-file context.yaml --output-file manifests.yaml
 
 ## API Reference
 
-### `runRender(handler: RenderHandler): Promise<void>`
+### `render(handler: RenderHandler): Promise<void>`
 
-Runs the render pipeline. Accepts a handler function that receives `RenderContext` and returns `RenderResult`.
+Runs the render pipeline. Accepts a handler function that receives a render context and returns `RenderResult`.
 
 ### `RenderHandler`
 
 ```ts
-type RenderHandler = ($: RenderContext) => Promise<RenderResult> | RenderResult;
+type RenderHandler<CtxType extends BaseRenderContext = RenderContext> = ($: CtxType) => Promise<RenderResult> | RenderResult;
 ```
 
-The handler can be sync or async.
+The handler can be sync or async. The generic parameter allows using a narrower context type like `WerfRenderContext`.
 
 ### `RenderContext`
 
-The full context passed to your handler. By convention, the parameter is named `$`.
+The context passed to your handler. By convention, the parameter is named `$`.
 
 ```ts
-interface RenderContext {
-    Values: Record<string, any>;      // User-supplied values (values.yaml)
+interface RenderContext<ValuesType = Record<string, any>> extends BaseRenderContext {
+    Values: ValuesType;                // Merged values (values.yaml + overrides)
     Release: Release;                  // Release metadata
     Chart: ChartMetadata;              // Chart.yaml contents
     Capabilities: Capabilities;        // Cluster capabilities
     Runtime: Record<string, any>;      // Runtime-specific data
     Files: Record<string, Uint8Array>; // Raw chart files
+}
+```
+
+### `WerfRenderContext`
+
+Render context with werf service values pre-typed. Use this when deploying with werf.
+
+```ts
+interface WerfRenderContext<ValuesType = Record<string, any>> {
+    Values: WerfServiceValues & ValuesType;  // Werf service values merged with user values
+    Release: Release;
+    Chart: ChartMetadata;
+    Capabilities: Capabilities;
+    Runtime: Record<string, any>;
+    Files: Record<string, Uint8Array>;
+}
+
+interface WerfServiceValues extends Record<string, any> {
+    global: {
+        werf: WerfInfo;                // Werf project metadata with typed images
+    };
+}
+
+interface WerfInfo {
+    name: string;              // Project name
+    version: string;           // Werf version
+    repo: string;              // Container registry repo
+    commit: {
+        hash: string;
+        date: {
+            human: string;     // Human-readable date string
+            unix: number;      // Unix timestamp
+        };
+    };
+    images: Record<string, WerfImageInfo>;
+    namespace?: string;
+    env?: string;
+    is_stub?: boolean;
+    stub_image?: string;
+}
+```
+
+### `WerfImageInfo`
+
+Per-image details available at `$.Values.global.werf.images.<imageName>`.
+
+```ts
+interface WerfImageInfo {
+    registry: string;          // e.g. "registry.example.com"
+    namespace: string;         // e.g. "myproject/myimage"
+    name: string;              // e.g. "myimage"
+    tag: string;
+    digest: string;
+    tag_digest: string;        // "tag@digest"
+    image: string;             // Full registry/namespace reference
+    repository: string;        // "namespace/name"
+    ref: string;               // "image:tag@digest"
+    ref_tag: string;           // "image:tag"
+    repository_ref: string;    // "repository:tag@digest"
+    repository_tag: string;    // "repository:tag"
+    name_ref: string;          // "name:tag@digest"
+    name_tag: string;          // "name:tag"
 }
 ```
 
@@ -177,7 +239,7 @@ interface RenderResult {
 }
 ```
 
-The `manifests` array must be non-empty — `runRender` throws if it's null, undefined, or empty.
+The `manifests` array must be non-empty — `render` throws if it's null, undefined, or empty.
 
 ## Full Example
 
@@ -239,7 +301,7 @@ Values:
 
 Render script (`render.ts`):
 ```ts
-import {RenderContext, RenderResult, runRender} from "@nelm/chart-ts-sdk";
+import {RenderContext, RenderResult, render} from "@nelm/chart-ts-sdk";
 
 function trunc(str: string, max: number): string {
     if (str.length <= max) return str;
@@ -276,7 +338,7 @@ function selectorLabels($: RenderContext): Record<string, string> {
     };
 }
 
-function render($: RenderContext): RenderResult {
+function generate($: RenderContext): RenderResult {
     const name = fullname($);
 
     return {
@@ -318,7 +380,7 @@ function render($: RenderContext): RenderResult {
     };
 }
 
-runRender(render);
+render(generate);
 ```
 
 Run:

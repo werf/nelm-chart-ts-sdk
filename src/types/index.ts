@@ -1,10 +1,64 @@
-export interface RenderContext {
-    Values: Record<string, any>;
+export interface WerfCommitDate {
+    human: string;
+    unix: number;
+}
+
+export interface WerfCommit {
+    hash: string;
+    date: WerfCommitDate;
+}
+
+export interface WerfImageInfo {
+    registry: string;
+    namespace: string;
+    name: string;
+    tag: string;
+    digest: string;
+    tag_digest: string;
+    image: string;
+    repository: string;
+    ref: string;
+    ref_tag: string;
+    repository_ref: string;
+    repository_tag: string;
+    name_ref: string;
+    name_tag: string;
+}
+
+export interface WerfInfo {
+    name: string;
+    version: string;
+    repo: string;
+    commit: WerfCommit;
+    images: Record<string, WerfImageInfo>;
+    namespace?: string;
+    env?: string;
+    is_stub?: boolean;
+    stub_image?: string;
+}
+
+export interface GlobalValues {
+    werf: WerfInfo;
+}
+
+export interface WerfServiceValues extends Record<string, any> {
+    global: GlobalValues;
+}
+
+export interface BaseRenderContext {
     Release: Release;
     Chart: ChartMetadata;
     Capabilities: Capabilities;
     Runtime: Record<string, any>;
     Files: Record<string, Uint8Array>;
+}
+
+export interface RenderContext<ValuesType = Record<string, any>> extends BaseRenderContext {
+    Values: ValuesType;
+}
+
+export interface WerfRenderContext<ValuesType = Record<string, any>> extends RenderContext {
+    Values: WerfServiceValues & ValuesType;
 }
 
 export interface Release {
@@ -62,4 +116,4 @@ export interface RenderResult {
     manifests: object[] | null;
 }
 
-export type RenderHandler = ($: RenderContext) => Promise<RenderResult> | RenderResult;
+export type RenderHandler<CtxType extends BaseRenderContext = RenderContext> = ($: CtxType) => Promise<RenderResult> | RenderResult;
