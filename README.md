@@ -117,8 +117,8 @@ interface RenderContext<ValuesType = Record<string, any>> extends BaseRenderCont
 Render context with werf service values pre-typed. Use this when deploying with werf.
 
 ```ts
-interface WerfRenderContext {
-    Values: WerfServiceValues;         // Werf-typed values (see below)
+interface WerfRenderContext<ValuesType = Record<string, any>> {
+    Values: WerfServiceValues & ValuesType;  // Werf service values merged with user values
     Release: Release;
     Chart: ChartMetadata;
     Capabilities: Capabilities;

@@ -57,8 +57,8 @@ export interface RenderContext<ValuesType = Record<string, any>> extends BaseRen
     Values: ValuesType;
 }
 
-export interface WerfRenderContext extends RenderContext {
-    Values: WerfServiceValues;
+export interface WerfRenderContext<ValuesType = Record<string, any>> extends RenderContext {
+    Values: WerfServiceValues & ValuesType;
 }
 
 export interface Release {
