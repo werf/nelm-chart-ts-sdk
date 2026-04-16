@@ -12,8 +12,8 @@ export async function render<RenderCtxType extends BaseRenderContext = RenderCon
 
     const {["input-file"]: inputFile, ["output-file"]: outputFile} = values;
 
-    if (!inputFile || !outputFile) {
-        throw new Error("Usage: deno run src/index.ts --input-file <input-file> --output-file <output-file>");
+    if (!inputFile) {
+        throw new Error("Usage: deno run src/index.ts --input-file <input-file> [--output-file <output-file>]");
     }
 
     const inputData = await Deno.readTextFile(inputFile);
@@ -26,5 +26,9 @@ export async function render<RenderCtxType extends BaseRenderContext = RenderCon
     }
     const yamlResult = result.manifests.map((manifest) => stringify(manifest)).join("---\n");
 
-    await Deno.writeTextFile(outputFile, yamlResult);
+    if (!outputFile) {
+        console.log(`Rendered manifests:\n${yamlResult}\n`)
+    } else {
+        await Deno.writeTextFile(outputFile, yamlResult);
+    }
 }
