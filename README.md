@@ -77,7 +77,7 @@ render(generate);
 2. Reads the input file as YAML and deserializes it into a `RenderContext`
 3. Calls your handler with the context
 4. Validates that the result contains a non-empty `manifests` array
-5. Serializes each manifest to YAML and writes them to the output file, separated by `---`
+5. Serializes manifests into a multi-document YAML format separated by `---` and writes the output file (or print to console if, no output file is specified).
 
 ```
 deno run render.ts --input-file context.yaml --output-file manifests.yaml
