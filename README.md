@@ -148,6 +148,7 @@ interface WerfInfo {
     env?: string;
     is_stub?: boolean;
     stub_image?: string;
+    dockerconfigjson?: string;
 }
 ```
 
