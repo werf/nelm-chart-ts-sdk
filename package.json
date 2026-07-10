@@ -1,6 +1,6 @@
 {
   "name": "@nelm/chart-ts-sdk",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "The Nelm TypeScript SDK for generating Kubernetes manifests with TypeScript instead of Helm templates",
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
