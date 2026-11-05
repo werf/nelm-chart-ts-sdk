@@ -164,11 +164,15 @@ test('dev forwards SIGTERM to the render and exits by it', {skip: process.platfo
     });
 
     const cliProcess = spawn(process.execPath, [cli, 'dev'], {cwd: dir});
+    t.after(() => cliProcess.kill('SIGKILL'));
     let stderr = '';
-    await new Promise((resolve) => cliProcess.stderr.on('data', (chunk) => {
-        stderr += chunk;
-        if (stderr.includes('started')) resolve();
-    }));
+    await new Promise((resolve, reject) => {
+        cliProcess.stderr.on('data', (chunk) => {
+            stderr += chunk;
+            if (stderr.includes('started')) resolve();
+        });
+        cliProcess.once('exit', () => reject(new Error(`dev exited before the render started: ${stderr}`)));
+    });
     cliProcess.kill('SIGTERM');
     const [code, signal] = await once(cliProcess, 'close');
 
