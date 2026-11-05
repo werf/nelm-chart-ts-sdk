@@ -1,4 +1,6 @@
 import assert from 'node:assert/strict';
+import {spawn} from 'node:child_process';
+import {once} from 'node:events';
 import {existsSync} from 'node:fs';
 import {join} from 'node:path';
 import {test} from 'node:test';
@@ -76,6 +78,15 @@ test('dev fails on a build error', (t) => {
     assert.match(result.stderr, /Could not resolve "\.\/missing\.ts"/);
 });
 
+test('dev reports an esbuild failure that is not a build error', {skip: process.platform === 'win32' && 'needs /usr/bin/false'}, (t) => {
+    const dir = makeChartDir(t, {'src/index.ts': chart, 'input.example.yaml': inputYaml});
+
+    const result = run(dir, [cli, 'dev'], {...process.env, ESBUILD_BINARY_PATH: '/usr/bin/false'});
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Failed to bundle src\/index\.ts: /);
+});
+
 test('dev fails without an entrypoint or an input file', (t) => {
     const noEntry = makeChartDir(t, {'input.example.yaml': inputYaml});
     const noInput = makeChartDir(t, {'src/index.ts': chart});
@@ -144,4 +155,23 @@ test('dev warns on Node.js older than 26', {skip: nodeMajor >= 26 && 'needs Node
 
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stderr, /does not restrict network access under --permission/);
+});
+
+test('dev forwards SIGTERM to the render and exits by it', {skip: process.platform === 'win32' && 'needs POSIX signals', timeout: 10_000}, async (t) => {
+    const dir = makeChartDir(t, {
+        'src/index.ts': `console.error('started');\nawait new Promise((resolve) => setTimeout(resolve, 60_000));\n`,
+        'input.example.yaml': inputYaml,
+    });
+
+    const cliProcess = spawn(process.execPath, [cli, 'dev'], {cwd: dir});
+    let stderr = '';
+    await new Promise((resolve) => cliProcess.stderr.on('data', (chunk) => {
+        stderr += chunk;
+        if (stderr.includes('started')) resolve();
+    }));
+    cliProcess.kill('SIGTERM');
+    const [code, signal] = await once(cliProcess, 'close');
+
+    assert.equal(code, null);
+    assert.equal(signal, 'SIGTERM');
 });

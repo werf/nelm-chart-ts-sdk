@@ -64,8 +64,11 @@ const dev = async (inputFile: string): Promise<number> => {
             outfile: bundlePath,
             logLevel: 'warning',
         });
-    } catch {
-        // esbuild has already printed the errors.
+    } catch (err) {
+        // Build failures carry diagnostics that esbuild has already printed.
+        if (!Array.isArray((err as {errors?: unknown}).errors)) {
+            console.error(`Failed to bundle ${entryPoint}: ${(err as Error).message}`);
+        }
         return 1;
     }
 
@@ -84,12 +87,26 @@ const dev = async (inputFile: string): Promise<number> => {
         `--input-file=${input}`,
     ], {env, stdio: 'inherit'});
 
+    const forwardedSignals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM', 'SIGHUP'];
+    const forward = (signal: NodeJS.Signals) => child.kill(signal);
+    for (const signal of forwardedSignals) {
+        process.on(signal, forward);
+    }
+
     return new Promise((resolvePromise) => {
         child.on('error', (err) => {
             console.error(`Failed to run ${process.execPath}: ${err.message}`);
             resolvePromise(1);
         });
-        child.on('close', (code) => resolvePromise(code ?? 1));
+        child.on('close', (code, signal) => {
+            for (const forwardedSignal of forwardedSignals) {
+                process.off(forwardedSignal, forward);
+            }
+            if (signal) {
+                process.kill(process.pid, signal);
+            }
+            resolvePromise(code ?? 1);
+        });
     });
 };
 
