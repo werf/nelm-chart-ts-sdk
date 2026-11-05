@@ -18,7 +18,7 @@ export function makeChartDir(t, files) {
     const dir = mkdtempSync(join(tmpdir(), 'nelm-chart-ts-test-'));
     t.after(() => rmSync(dir, {recursive: true, force: true}));
     mkdirSync(join(dir, 'node_modules', '@nelm'), {recursive: true});
-    symlinkSync(sdkRoot, join(dir, 'node_modules', '@nelm', 'chart-ts-sdk'), 'dir');
+    symlinkSync(sdkRoot, join(dir, 'node_modules', '@nelm', 'chart-ts-sdk'), 'junction');
     writeFileSync(join(dir, 'package.json'), JSON.stringify({type: 'module', private: true}));
     for (const [path, content] of Object.entries(files)) {
         mkdirSync(dirname(join(dir, path)), {recursive: true});

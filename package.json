@@ -16,7 +16,7 @@
   ],
   "scripts": {
     "build": "tsup",
-    "test": "npm run build && node --test 'test/*.test.mjs'",
+    "test": "npm run build && node --test \"test/*.test.mjs\"",
     "prepublishOnly": "npm run build",
     "prepack": "npm run build"
   },
