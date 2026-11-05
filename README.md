@@ -76,7 +76,7 @@ render(generate);
 1. Parses CLI arguments `--input-file` and `--output-file`
 2. Reads the input file as YAML and deserializes it into a `RenderContext`
 3. Calls your handler with the context
-4. Validates that the result contains a non-empty `manifests` array
+4. Validates that the result contains a `manifests` array
 5. Serializes manifests into a multi-document YAML format separated by `---` and writes the output file (or prints them to stdout if no output file is specified).
 
 Nelm bundles the chart with esbuild and runs the bundle like this:
@@ -282,7 +282,7 @@ interface RenderResult {
 }
 ```
 
-The `manifests` array must be non-empty — `render` throws if it's null, undefined, or empty.
+`render` throws if `manifests` is not an array. An empty array renders no manifests.
 
 ## Full Example
 
