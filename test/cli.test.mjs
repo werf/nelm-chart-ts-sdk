@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
-import {existsSync} from 'node:fs';
+import {existsSync, symlinkSync} from 'node:fs';
 import {join} from 'node:path';
 import {test} from 'node:test';
 import {inputYaml, makeChartDir, run, sdkRoot} from './helpers.mjs';
@@ -43,6 +43,19 @@ test('dev bundles src/index.ts into .dev/bundle.js and prints manifests', (t) =>
     assert.equal(result.status, 0, result.stderr);
     assert.equal(result.stdout, 'Rendered manifests:\napiVersion: v1\nkind: ConfigMap\nmetadata:\n  name: my-release\n\n\n');
     assert.ok(existsSync(join(dir, '.dev', 'bundle.js')));
+});
+
+test('dev runs CommonJS dependencies that use require and __dirname', (t) => {
+    const dir = makeChartDir(t, {
+        'src/index.ts': `import {render} from '@nelm/chart-ts-sdk';\nimport {location} from 'cjs-dependency';\nawait render(() => ({manifests: [{location: location()}]}));\n`,
+        'input.example.yaml': inputYaml,
+    });
+    symlinkSync(join(sdkRoot, 'test', 'fixtures', 'cjs-dependency'), join(dir, 'node_modules', 'cjs-dependency'), 'junction');
+
+    const result = run(dir, [cli, 'dev']);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /location: \.dev\/bundle\.js function\n/);
 });
 
 test('dev falls back to src/index.js and accepts --input-file', (t) => {

@@ -61,6 +61,9 @@ const dev = async (inputFile: string): Promise<number> => {
             format: 'esm',
             platform: 'node',
             target: 'node26',
+            // CommonJS dependencies need require() for built-in modules and __dirname/__filename.
+            banner: {js: "import { createRequire as __nelmCreateRequire } from 'node:module'; const require = __nelmCreateRequire(import.meta.url);"},
+            define: {__dirname: 'import.meta.dirname', __filename: 'import.meta.filename'},
             outfile: bundlePath,
             logLevel: 'warning',
         });
