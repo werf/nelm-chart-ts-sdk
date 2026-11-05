@@ -5,6 +5,9 @@
   "module": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "main": "./dist/index.js",
+  "bin": {
+    "nelm-chart-ts": "./dist/cli.js"
+  },
   "type": "module",
   "files": [
     "dist",
@@ -12,7 +15,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "tsup src/index.ts --format esm --dts",
+    "build": "tsup",
     "prepublishOnly": "npm run build",
     "prepack": "npm run build"
   },
@@ -44,6 +47,7 @@
     "typescript": "^5.0.0"
   },
   "dependencies": {
+    "esbuild": "0.28.2",
     "js-yaml": "^5.5.0"
   }
 }
