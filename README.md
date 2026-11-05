@@ -2,7 +2,7 @@
 
 TypeScript SDK for generating Kubernetes manifests with TypeScript instead of Helm templates.
 
-Runs under [Deno](https://deno.land). Reads a YAML render context from a file, passes it to your handler, and writes the resulting manifests as a multi-document YAML file.
+Runs under [Node.js](https://nodejs.org). Reads a YAML render context from a file, passes it to your handler, and writes the resulting manifests as a multi-document YAML file.
 
 ## Install
 
@@ -77,11 +77,53 @@ render(generate);
 2. Reads the input file as YAML and deserializes it into a `RenderContext`
 3. Calls your handler with the context
 4. Validates that the result contains a non-empty `manifests` array
-5. Serializes manifests into a multi-document YAML format separated by `---` and writes the output file (or print to console if, no output file is specified).
+5. Serializes manifests into a multi-document YAML format separated by `---` and writes the output file (or prints them to stdout if no output file is specified).
+
+Nelm bundles the chart with esbuild and runs the bundle like this:
 
 ```
-deno run render.ts --input-file context.yaml --output-file manifests.yaml
+node --permission --allow-fs-read=<bundle> --allow-fs-read=<input-file> --allow-fs-write=<output-file> \
+  <bundle> --input-file=<input-file> --output-file=<output-file>
 ```
+
+## Local Development
+
+The package provides the `nelm-chart-ts` command for rendering a chart without Nelm. Add it to the `package.json` of the chart's `ts/` directory:
+
+```json
+{
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "dev": "nelm-chart-ts dev --input-file input.example.yaml",
+    "typecheck": "tsc"
+  },
+  "dependencies": {
+    "@nelm/chart-ts-sdk": "^0.2.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.8"
+  }
+}
+```
+
+Then run it from the `ts/` directory:
+
+```
+npm run dev
+```
+
+### `nelm-chart-ts dev [--input-file <path>]`
+
+Renders the chart the same way Nelm does and prints the manifests to stdout:
+
+1. Bundles `src/index.ts` (or `src/index.js`, if there is no `src/index.ts`) with esbuild into `.dev/bundle.js`, using the same build options as Nelm.
+2. Runs the bundle with the current `node` under `--permission`, with an empty environment, allowing it to read only the bundle and the input file.
+3. Exits with the exit code of the render.
+
+`--input-file` defaults to `input.example.yaml`. Add `.dev/` to `.gitignore` and `.helmignore`.
+
+Use Node.js 26 or newer: older versions do not restrict network access under `--permission`, and the command prints a warning on them.
 
 ## API Reference
 
@@ -300,7 +342,7 @@ Values:
     type: ClusterIP
 ```
 
-Render script (`render.ts`):
+Render script (`src/index.ts`):
 ```ts
 import {RenderContext, RenderResult, render} from "@nelm/chart-ts-sdk";
 
@@ -387,7 +429,7 @@ render(generate);
 Run:
 
 ```
-deno run render.ts --input-file context.yaml --output-file manifests.yaml
+npx nelm-chart-ts dev --input-file context.yaml
 ```
 
 ## License
