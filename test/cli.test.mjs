@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict';
 import {spawn} from 'node:child_process';
 import {once} from 'node:events';
-import {existsSync, symlinkSync} from 'node:fs';
+import {existsSync, mkdirSync, symlinkSync, writeFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {test} from 'node:test';
 import {inputYaml, makeChartDir, run, sdkRoot} from './helpers.mjs';
@@ -147,6 +147,22 @@ test('dev denies file reads and writes outside the bundle and input', (t) => {
 
     assert.equal(result.status, 0, result.stderr);
     assert.match(result.stdout, /result:\n\s+- ERR_ACCESS_DENIED\n\s+- ERR_ACCESS_DENIED\n/);
+});
+
+test('dev denies file writes through node:sqlite', (t) => {
+    const dir = makeChartDir(t, {'input.example.yaml': inputYaml});
+    const database = join(dir, 'sqlite.db');
+    mkdirSync(join(dir, 'src'));
+    writeFileSync(join(dir, 'src', 'index.ts'), probe(`await attempt(async () => {
+        const {DatabaseSync} = await import('node:sqlite');
+        new DatabaseSync(${JSON.stringify(database)}).exec('CREATE TABLE t (x)');
+    })`));
+
+    const result = run(dir, [cli, 'dev']);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /result: ERR_UNKNOWN_BUILTIN_MODULE\n/);
+    assert.ok(!existsSync(database));
 });
 
 test('dev denies network access', {skip: nodeMajor < 26 && 'needs Node.js 26+'}, (t) => {

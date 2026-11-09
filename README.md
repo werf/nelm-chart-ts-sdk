@@ -79,11 +79,11 @@ render(generate);
 4. Validates that the result contains a `manifests` array
 5. Serializes manifests into a multi-document YAML format separated by `---` and writes the output file (or prints them to stdout if no output file is specified).
 
-Nelm bundles the chart with esbuild and runs the bundle like this:
+Nelm bundles the chart with esbuild and passes the bundle to Node.js through stdin:
 
 ```
-node --permission --allow-fs-read=<bundle> --allow-fs-read=<input-file> --allow-fs-write=<output-file> \
-  <bundle> --input-file=<input-file> --output-file=<output-file>
+node --permission --no-experimental-sqlite --allow-fs-read=<input-file> --allow-fs-write=<output-file> \
+  --input-type=module - --input-file=<input-file> --output-file=<output-file>
 ```
 
 ## Local Development

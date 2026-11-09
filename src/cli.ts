@@ -84,6 +84,8 @@ const dev = async (inputFile: string): Promise<number> => {
 
     const child = spawn(process.execPath, [
         '--permission',
+        // node:sqlite writes files bypassing the permission model.
+        '--no-experimental-sqlite',
         `--allow-fs-read=${bundle}`,
         `--allow-fs-read=${input}`,
         bundle,
