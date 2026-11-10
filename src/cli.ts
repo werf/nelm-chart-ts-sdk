@@ -93,7 +93,6 @@ const dev = async (inputFile: string): Promise<number> => {
         '--no-experimental-sqlite',
         // v8.setFlagsFromString can enable V8 tracing that writes files bypassing the permission model.
         '--freeze-flags-after-init',
-        '--no-deprecation',
         `--allow-fs-read=${bundle}`,
         `--allow-fs-read=${input}`,
         bundle,
