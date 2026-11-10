@@ -206,6 +206,24 @@ await render(() => ({manifests: [{sum}]}));
     assert.match(result.stderr, /Check failed: !IsFrozen\(\)/);
 });
 
+test('dev hides deprecation warnings', (t) => {
+    const dir = makeChartDir(t, {
+        'src/index.ts': `import {render} from '@nelm/chart-ts-sdk';
+import {createRequire} from 'node:module';
+
+const punycode = createRequire(import.meta.url)('punycode');
+await render(() => ({manifests: [{encoded: punycode.encode('мир')}]}));
+`,
+        'input.example.yaml': inputYaml,
+    });
+
+    const result = run(dir, [cli, 'dev']);
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stdout, /encoded: h1ahn\n/);
+    assert.doesNotMatch(result.stderr, /DeprecationWarning|DEP0040/);
+});
+
 test('dev denies network access', {skip: nodeMajor < 26 && 'needs Node.js 26+'}, (t) => {
     const dir = makeChartDir(t, {
         'src/index.ts': probe(`await attempt(() => fetch('http://127.0.0.1:8080'))`),
