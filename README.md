@@ -82,7 +82,7 @@ render(generate);
 Nelm bundles the chart with esbuild and passes the bundle to Node.js through stdin:
 
 ```
-node --permission --no-experimental-sqlite --freeze-flags-after-init --allow-fs-read=<input-file> --allow-fs-write=<output-file> \
+node --permission --no-experimental-sqlite --freeze-flags-after-init --no-deprecation --allow-fs-read=<input-file> --allow-fs-write=<output-file> \
   --input-type=module - --input-file=<input-file> --output-file=<output-file>
 ```
 
@@ -120,6 +120,8 @@ Renders the chart the same way Nelm does and prints the manifests to stdout:
 1. Bundles `src/index.ts` (or `src/index.js`, if there is no `src/index.ts`) with esbuild into `.dev/bundle.js`, using the same build options as Nelm.
 2. Runs the bundle with the current `node` under `--permission`, with an empty environment, allowing it to read only the bundle and the input file.
 3. Exits with the exit code of the render.
+
+Unlike Nelm, it does not pass `--no-deprecation`, so Node.js deprecation warnings from dependencies stay visible on stderr.
 
 `--input-file` defaults to `input.example.yaml`. Add `.dev/` to `.gitignore` and `.helmignore`.
 
