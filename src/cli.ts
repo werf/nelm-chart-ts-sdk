@@ -77,6 +77,11 @@ const dev = async (inputFile: string): Promise<number> => {
 
     const bundle = await realpath(bundlePath);
     const input = await realpath(inputPath);
+    for (const path of [bundle, input]) {
+        if (path.includes('*')) {
+            return fail(`Path "${path}" contains "*", which Node.js takes as a wildcard in permission flags: rename the directory or file.`);
+        }
+    }
     const env: Record<string, string> = {};
     if (process.platform === 'win32' && process.env.SystemRoot) {
         env.SystemRoot = process.env.SystemRoot;

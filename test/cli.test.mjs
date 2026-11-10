@@ -113,6 +113,23 @@ test('dev fails without an entrypoint or an input file', (t) => {
     assert.match(inputResult.stderr, /Input file not found: .*input\.example\.yaml/);
 });
 
+test('dev rejects "*" in the bundle and input paths', {skip: process.platform === 'win32' && 'needs "*" in file names'}, (t) => {
+    const dir = makeChartDir(t, {
+        'ch*rt/src/index.ts': chart,
+        'ch*rt/input.example.yaml': inputYaml,
+        'src/index.ts': chart,
+        'in*put.yaml': inputYaml,
+    });
+
+    const bundleResult = run(join(dir, 'ch*rt'), [cli, 'dev']);
+    const inputResult = run(dir, [cli, 'dev', '--input-file', 'in*put.yaml']);
+
+    assert.equal(bundleResult.status, 1);
+    assert.match(bundleResult.stderr, /ch\*rt\/\.dev\/bundle\.js" contains "\*", which Node\.js takes as a wildcard in permission flags/);
+    assert.equal(inputResult.status, 1);
+    assert.match(inputResult.stderr, /in\*put\.yaml" contains "\*", which Node\.js takes as a wildcard in permission flags/);
+});
+
 test('rejects an unknown command', (t) => {
     const dir = makeChartDir(t, {});
 
