@@ -203,15 +203,15 @@ test('dev denies network access', {skip: nodeMajor < 26 && 'needs Node.js 26+'},
 
 const withNodeVersion = (version) => `data:text/javascript,Object.defineProperty(process, 'versions', {value: {...process.versions, node: '${version}'}}); Object.defineProperty(process, 'version', {value: 'v${version}'});`;
 
-for (const [version, warns] of [['24.13.0', true], ['26.12.0', true], ['26.12.1', false], ['27.0.0', false]]) {
-    test(`dev ${warns ? 'warns' : 'does not warn'} about the sandbox on Node.js ${version}`, (t) => {
+for (const [version, warns] of [['24.13.0', true], ['25.9.0', true], ['26.0.0', false], ['26.12.0', false], ['27.0.0', false]]) {
+    test(`dev ${warns ? 'warns' : 'does not warn'} about network access on Node.js ${version}`, (t) => {
         const dir = makeChartDir(t, {'src/index.ts': chart, 'input.example.yaml': inputYaml});
 
         const result = run(dir, ['--import', withNodeVersion(version), cli, 'dev']);
 
         assert.equal(result.status, 0, result.stderr);
         if (warns) {
-            assert.match(result.stderr, new RegExp(`sandbox is incomplete on Node\\.js v${version.replaceAll('.', '\\.')}`));
+            assert.match(result.stderr, new RegExp(`Node\\.js v${version.replaceAll('.', '\\.')} does not restrict network access under --permission`));
         } else {
             assert.equal(result.stderr, '');
         }
