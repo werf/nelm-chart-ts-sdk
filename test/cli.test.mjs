@@ -201,14 +201,22 @@ test('dev denies network access', {skip: nodeMajor < 26 && 'needs Node.js 26+'},
     assert.match(result.stdout, /result: ERR_ACCESS_DENIED/);
 });
 
-test('dev warns on Node.js older than 26', {skip: nodeMajor >= 26 && 'needs Node.js < 26'}, (t) => {
-    const dir = makeChartDir(t, {'src/index.ts': chart, 'input.example.yaml': inputYaml});
+const withNodeVersion = (version) => `data:text/javascript,Object.defineProperty(process, 'versions', {value: {...process.versions, node: '${version}'}}); Object.defineProperty(process, 'version', {value: 'v${version}'});`;
 
-    const result = run(dir, [cli, 'dev']);
+for (const [version, warns] of [['24.13.0', true], ['26.12.0', true], ['26.12.1', false], ['27.0.0', false]]) {
+    test(`dev ${warns ? 'warns' : 'does not warn'} about the sandbox on Node.js ${version}`, (t) => {
+        const dir = makeChartDir(t, {'src/index.ts': chart, 'input.example.yaml': inputYaml});
 
-    assert.equal(result.status, 0, result.stderr);
-    assert.match(result.stderr, /does not restrict network access under --permission/);
-});
+        const result = run(dir, ['--import', withNodeVersion(version), cli, 'dev']);
+
+        assert.equal(result.status, 0, result.stderr);
+        if (warns) {
+            assert.match(result.stderr, new RegExp(`sandbox is incomplete on Node\\.js v${version.replaceAll('.', '\\.')}`));
+        } else {
+            assert.equal(result.stderr, '');
+        }
+    });
+}
 
 test('dev forwards SIGTERM to the render and exits by it', {skip: process.platform === 'win32' && 'needs POSIX signals', timeout: 10_000}, async (t) => {
     const dir = makeChartDir(t, {

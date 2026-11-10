@@ -7,7 +7,7 @@ Published as `@nelm/chart-ts-sdk`. Users import types (`RenderContext`, `RenderR
 and the `render` helper to build chart renderers that run under Node.js.
 The `nelm-chart-ts dev` CLI renders a chart locally without Nelm.
 
-**Runtime**: Node.js — uses `process.argv` and `node:fs/promises`. Nelm runs the bundle with Node.js 26 under `--permission`.
+**Runtime**: Node.js — uses `process.argv` and `node:fs/promises`. Nelm runs the bundle with Node.js 26.12.1 or newer under `--permission`.
 **Module system**: ESM only (`"type": "module"`).
 **4 source files total.** Small, focused SDK.
 

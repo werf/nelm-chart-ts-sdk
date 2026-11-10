@@ -35,10 +35,22 @@ const parseCliArgs = (): {inputFile: string} => {
     return {inputFile: values['input-file']};
 };
 
+const minNodeVersion = [26, 12, 1];
+
+const isOlderThanMinNode = (version: string): boolean => {
+    const parts = version.split('-')[0].split('.').map(Number);
+    for (const [i, min] of minNodeVersion.entries()) {
+        const part = parts[i] ?? 0;
+        if (part !== min) {
+            return part < min;
+        }
+    }
+    return false;
+};
+
 const dev = async (inputFile: string): Promise<number> => {
-    const major = Number(process.versions.node.split('.')[0]);
-    if (major < 26) {
-        console.error(`Warning: Node.js ${process.version} does not restrict network access under --permission, use Node.js 26 or newer.`);
+    if (isOlderThanMinNode(process.versions.node)) {
+        console.error(`Warning: the --permission sandbox is incomplete on Node.js ${process.version}: network access is open before Node.js 26, and permission model bypasses are fixed in Node.js ${minNodeVersion.join('.')}. Use Node.js ${minNodeVersion.join('.')} or newer.`);
     }
 
     const workDir = process.cwd();

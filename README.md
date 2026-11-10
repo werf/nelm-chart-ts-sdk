@@ -123,7 +123,7 @@ Renders the chart the same way Nelm does and prints the manifests to stdout:
 
 `--input-file` defaults to `input.example.yaml`. Add `.dev/` to `.gitignore` and `.helmignore`.
 
-Use Node.js 26 or newer: older versions do not restrict network access under `--permission`, and the command prints a warning on them.
+Use Node.js 26.12.1 or newer. On older versions the `--permission` sandbox is incomplete: network access is open before Node.js 26, and permission model bypasses are fixed in 26.12.1. The command prints a warning on them.
 
 ## API Reference
 
