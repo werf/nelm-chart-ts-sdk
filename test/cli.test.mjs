@@ -165,6 +165,30 @@ test('dev denies file writes through node:sqlite', (t) => {
     assert.ok(!existsSync(database));
 });
 
+test('dev denies file writes through V8 flags', (t) => {
+    const dir = makeChartDir(t, {'input.example.yaml': inputYaml});
+    const traceFile = join(dir, 'code-traces.txt');
+    mkdirSync(join(dir, 'src'));
+    writeFileSync(join(dir, 'src', 'index.ts'), `import {render} from '@nelm/chart-ts-sdk';
+import {setFlagsFromString} from 'node:v8';
+
+setFlagsFromString(${JSON.stringify(`--redirect-code-traces-to=${traceFile}`)});
+setFlagsFromString('--redirect-code-traces');
+setFlagsFromString('--print-opt-code');
+const double = (x: number) => x * 2;
+let sum = 0;
+for (let i = 0; i < 1_000_000; i++) sum += double(i);
+
+await render(() => ({manifests: [{sum}]}));
+`);
+
+    const result = run(dir, [cli, 'dev']);
+
+    assert.ok(!existsSync(traceFile));
+    assert.notEqual(result.status, 0);
+    assert.match(result.stderr, /Check failed: !IsFrozen\(\)/);
+});
+
 test('dev denies network access', {skip: nodeMajor < 26 && 'needs Node.js 26+'}, (t) => {
     const dir = makeChartDir(t, {
         'src/index.ts': probe(`await attempt(() => fetch('http://127.0.0.1:8080'))`),

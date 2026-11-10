@@ -82,7 +82,7 @@ render(generate);
 Nelm bundles the chart with esbuild and passes the bundle to Node.js through stdin:
 
 ```
-node --permission --no-experimental-sqlite --allow-fs-read=<input-file> --allow-fs-write=<output-file> \
+node --permission --no-experimental-sqlite --freeze-flags-after-init --allow-fs-read=<input-file> --allow-fs-write=<output-file> \
   --input-type=module - --input-file=<input-file> --output-file=<output-file>
 ```
 
