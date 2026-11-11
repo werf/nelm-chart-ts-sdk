@@ -45,6 +45,20 @@ test('dev bundles src/index.ts into .dev/bundle.js and prints manifests', (t) =>
     assert.ok(existsSync(join(dir, '.dev', 'bundle.js')));
 });
 
+test('dev maps stack traces to the chart sources', (t) => {
+    const dir = makeChartDir(t, {
+        'src/index.ts': `import {render} from '@nelm/chart-ts-sdk';\n\nawait render((): never => { throw new Error('boom'); });\n`,
+        'input.example.yaml': inputYaml,
+    });
+
+    const result = run(dir, [cli, 'dev']);
+
+    assert.equal(result.status, 1);
+    assert.ok(existsSync(join(dir, '.dev', 'bundle.js.map')));
+    assert.match(result.stderr, /src[\\/]index\.ts:3:\d+/);
+    assert.doesNotMatch(result.stderr, /\.dev[\\/]bundle\.js:\d+/);
+});
+
 test('dev runs CommonJS dependencies that use require and __dirname', (t) => {
     const dir = makeChartDir(t, {
         'src/index.ts': `import {render} from '@nelm/chart-ts-sdk';\nimport {location} from 'cjs-dependency';\nawait render(() => ({manifests: [{location: location()}]}));\n`,
@@ -234,6 +248,63 @@ for (const [version, warns] of [['24.13.0', true], ['25.9.0', true], ['26.0.0', 
         }
     });
 }
+
+const debugChart = `import {render} from '@nelm/chart-ts-sdk';
+
+await render(() => ({manifests: [{execArgv: process.execArgv, secret: process.env.NELM_CHART_TS_TEST_SECRET ?? 'unset'}]}));
+`;
+
+test('dev --inspect runs the chart without the sandbox', (t) => {
+    const dir = makeChartDir(t, {'src/index.ts': debugChart, 'input.example.yaml': inputYaml});
+
+    const result = run(dir, [cli, 'dev', '--inspect=127.0.0.1:0'], {...process.env, NELM_CHART_TS_TEST_SECRET: 'secret'});
+
+    assert.equal(result.status, 0, result.stderr);
+    assert.match(result.stderr, /Debugger listening on ws:\/\/127\.0\.0\.1:\d+\//);
+    assert.match(result.stderr, /the sandbox is disabled while debugging/);
+    assert.match(result.stdout, /- --inspect=127\.0\.0\.1:0\n/);
+    assert.doesNotMatch(result.stdout, /--permission/);
+    assert.match(result.stdout, /secret: secret\n/);
+});
+
+test('dev --inspect-brk waits for the debugger', {timeout: 10_000}, async (t) => {
+    const dir = makeChartDir(t, {'src/index.ts': debugChart, 'input.example.yaml': inputYaml});
+
+    const cliProcess = spawn(process.execPath, [cli, 'dev', '--inspect-brk=127.0.0.1:0'], {cwd: dir});
+    t.after(() => cliProcess.kill('SIGKILL'));
+    let stdout = '';
+    let stderr = '';
+    cliProcess.stdout.on('data', (chunk) => stdout += chunk);
+    const debuggerUrl = await new Promise((resolve, reject) => {
+        cliProcess.stderr.on('data', (chunk) => {
+            stderr += chunk;
+            const match = stderr.match(/Debugger listening on (ws:\/\/\S+)/);
+            if (match) resolve(match[1]);
+        });
+        cliProcess.once('exit', () => reject(new Error(`dev exited before the debugger started: ${stderr}`)));
+    });
+
+    const socket = new WebSocket(debuggerUrl);
+    await once(socket, 'open');
+    socket.send(JSON.stringify({id: 1, method: 'Runtime.runIfWaitingForDebugger'}));
+    await new Promise((resolve) => socket.addEventListener('message', (event) => {
+        if (JSON.parse(event.data).id === 1) resolve();
+    }));
+    socket.close();
+    const [code] = await once(cliProcess, 'close');
+
+    assert.equal(code, 0, stderr);
+    assert.match(stdout, /- --inspect-brk=127\.0\.0\.1:0\n/);
+});
+
+test('dev rejects --inspect together with --inspect-brk', (t) => {
+    const dir = makeChartDir(t, {'src/index.ts': chart, 'input.example.yaml': inputYaml});
+
+    const result = run(dir, [cli, 'dev', '--inspect', '--inspect-brk']);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Use either --inspect or --inspect-brk/);
+});
 
 test('dev forwards SIGTERM to the render and exits by it', {skip: process.platform === 'win32' && 'needs POSIX signals', timeout: 10_000}, async (t) => {
     const dir = makeChartDir(t, {

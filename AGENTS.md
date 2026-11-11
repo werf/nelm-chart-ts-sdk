@@ -150,7 +150,8 @@ node bundle.js --input-file context.yaml --output-file manifests.yaml
 ```
 
 Do NOT change the file-based I/O contract — it is the IPC mechanism with the Nelm runtime.
-The esbuild options and the `node --permission` invocation in `src/cli.ts` must match Nelm's, except `--no-deprecation`, which only Nelm passes.
+The esbuild options and the `node --permission` invocation in `src/cli.ts` must match Nelm's, except `--no-deprecation`, which only Nelm passes, and the source map (`sourcemap: 'linked'`, `--enable-source-maps`, read access to `.dev/bundle.js.map`), which only `dev` uses.
+With `--inspect`/`--inspect-brk`, `dev` runs without the sandbox: no `--permission`, the whole environment.
 
 ## Dependencies
 

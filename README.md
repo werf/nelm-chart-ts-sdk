@@ -113,12 +113,12 @@ Then run it from the `ts/` directory:
 npm run dev
 ```
 
-### `nelm-chart-ts dev [--input-file <path>]`
+### `nelm-chart-ts dev [--input-file <path>] [--inspect[=[host:]port] | --inspect-brk[=[host:]port]]`
 
 Renders the chart the same way Nelm does and prints the manifests to stdout:
 
-1. Bundles `src/index.ts` (or `src/index.js`, if there is no `src/index.ts`) with esbuild into `.dev/bundle.js`, using the same build options as Nelm.
-2. Runs the bundle with the current `node` under `--permission`, with an empty environment, allowing it to read only the bundle and the input file.
+1. Bundles `src/index.ts` (or `src/index.js`, if there is no `src/index.ts`) with esbuild into `.dev/bundle.js`, using the same build options as Nelm, plus a source map in `.dev/bundle.js.map`.
+2. Runs the bundle with the current `node` under `--permission` and `--enable-source-maps`, with an empty environment, allowing it to read only the bundle, its source map and the input file. Stack traces point to `src/*.ts`.
 3. Exits with the exit code of the render.
 
 Unlike Nelm, it does not pass `--no-deprecation`, so Node.js deprecation warnings from dependencies stay visible on stderr.
@@ -126,6 +126,21 @@ Unlike Nelm, it does not pass `--no-deprecation`, so Node.js deprecation warning
 `--input-file` defaults to `input.example.yaml`. Add `.dev/` to `.gitignore` and `.helmignore`.
 
 Use Node.js 26 or newer: older versions do not restrict network access under `--permission`, and the command prints a warning on them.
+
+### Debugging
+
+```
+npm run dev -- --inspect-brk
+```
+
+`--inspect[=[host:]port]` and `--inspect-brk[=[host:]port]` are passed to Node.js: `--inspect-brk` waits for a debugger before the chart code runs, `--inspect` does not wait. The default address is `127.0.0.1:9229`. Breakpoints in `src/*.ts` work through the source map.
+
+Connect a debugger:
+
+- VS Code: run `npm run dev -- --inspect` in a JavaScript Debug Terminal, and the debugger attaches by itself. Or run `npm run dev -- --inspect-brk` in any terminal and attach to port 9229 with a launch configuration of `"type": "node", "request": "attach", "port": 9229`.
+- Chrome: open `chrome://inspect` and select the process under Remote Target.
+
+The sandbox is disabled while debugging, so that debuggers can attach: the chart runs without `--permission` and with the whole environment of the terminal, so it can access any file, the network and environment variables. The command prints a warning about this. To check the chart the way Nelm renders it, run `npm run dev` without `--inspect`.
 
 ## API Reference
 
