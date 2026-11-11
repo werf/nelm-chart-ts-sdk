@@ -127,6 +127,20 @@ test('dev fails without an entrypoint or an input file', (t) => {
     assert.match(inputResult.stderr, /Input file not found: .*input\.example\.yaml/);
 });
 
+test('dev rejects an input path that is not a regular file', (t) => {
+    const dir = makeChartDir(t, {
+        'src/index.ts': `console.error('chart started');\n${chart}`,
+        'input.example.yaml': inputYaml,
+    });
+
+    const result = run(dir, [cli, 'dev', '--input-file', '.']);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Input file is not a regular file: /);
+    assert.doesNotMatch(result.stderr, /chart started/);
+    assert.ok(!existsSync(join(dir, '.dev')));
+});
+
 test('dev rejects "*" in the bundle and input paths', {skip: process.platform === 'win32' && 'needs "*" in file names'}, (t) => {
     const dir = makeChartDir(t, {
         'ch*rt/src/index.ts': chart,

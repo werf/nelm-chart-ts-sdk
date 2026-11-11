@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
-import {realpath} from 'node:fs/promises';
+import {realpath, stat} from 'node:fs/promises';
 import {join, resolve} from 'node:path';
 import {parseArgs} from 'node:util';
 import {build} from 'esbuild';
@@ -75,6 +75,11 @@ const dev = async (inputFile: string, inspectFlag: string | null): Promise<numbe
     if (!existsSync(inputPath)) {
         return fail(`Input file not found: ${inputPath}`);
     }
+    const input = await realpath(inputPath);
+    // Node.js grants read access to a directory recursively.
+    if (!(await stat(input)).isFile()) {
+        return fail(`Input file is not a regular file: ${input}`);
+    }
 
     const bundlePath = join(workDir, '.dev', 'bundle.js');
     try {
@@ -102,7 +107,6 @@ const dev = async (inputFile: string, inspectFlag: string | null): Promise<numbe
 
     const bundle = await realpath(bundlePath);
     const sourceMap = `${bundle}.map`;
-    const input = await realpath(inputPath);
     for (const path of [bundle, sourceMap, input]) {
         if (path.includes('*')) {
             return fail(`Path "${path}" contains "*", which Node.js takes as a wildcard in permission flags: rename the directory or file.`);
