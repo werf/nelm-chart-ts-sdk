@@ -102,7 +102,7 @@ The package provides the `nelm-chart-ts` command for rendering a chart without N
     "@nelm/chart-ts-sdk": "^0.2.0"
   },
   "devDependencies": {
-    "typescript": "^5.8"
+    "typescript": "~6.0.3"
   }
 }
 ```
