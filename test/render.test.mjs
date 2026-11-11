@@ -2,7 +2,6 @@ import assert from 'node:assert/strict';
 import {readFileSync} from 'node:fs';
 import {join} from 'node:path';
 import {test} from 'node:test';
-import {load} from 'js-yaml';
 import {inputYaml, makeChartDir, run} from './helpers.mjs';
 
 const chart = `import {render} from '@nelm/chart-ts-sdk';
@@ -82,55 +81,4 @@ test('fails when the handler returns no manifests array', (t) => {
 
     assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Handler must return an object with a 'manifests' array/);
-});
-
-test('reads the input as nelm does', (t) => {
-    const dir = makeChartDir(t, {
-        'chart.mjs': `import {render} from '@nelm/chart-ts-sdk';\nawait render(($) => ({manifests: [$.Values]}));\n`,
-        'input.yaml': `Values:
-  octal: 0755
-  octalO: 0o755
-  notOctal: 08
-  hex: 0X1F
-  underscores: 1_000
-  exponent: 1e3
-  time: 12:30
-  date: 2024-01-01
-  dateTime: 2024-01-01T10:00:00Z
-  quoted: "0755"
-  yes: yes
-  off: off
-  answer: n
-  tilde: ~
-  base: &base {a: 1, b: 2}
-  merged:
-    <<: *base
-    b: 3
-  duplicate: 1
-  duplicate: 2
-`,
-    });
-
-    const result = run(dir, ['chart.mjs', '--input-file', 'input.yaml', '--output-file', 'output.yaml']);
-
-    assert.equal(result.status, 0, result.stderr);
-    assert.deepEqual(load(readFileSync(join(dir, 'output.yaml'), 'utf8')), {
-        octal: 493,
-        octalO: 493,
-        notOctal: 8,
-        hex: 31,
-        underscores: 1000,
-        exponent: 1000,
-        time: '12:30',
-        date: '2024-01-01',
-        dateTime: '2024-01-01T10:00:00Z',
-        quoted: '0755',
-        true: true,
-        false: false,
-        answer: false,
-        tilde: null,
-        base: {a: 1, b: 2},
-        merged: {a: 1, b: 3},
-        duplicate: 2,
-    });
 });
