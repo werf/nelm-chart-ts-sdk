@@ -2,6 +2,7 @@
 import {spawn} from 'node:child_process';
 import {existsSync} from 'node:fs';
 import {realpath, stat} from 'node:fs/promises';
+import {constants} from 'node:os';
 import {join, resolve} from 'node:path';
 import {parseArgs} from 'node:util';
 import {build} from 'esbuild';
@@ -142,7 +143,11 @@ const dev = async (inputFile: string, inspectFlag: string | null): Promise<numbe
     const child = spawn(process.execPath, [...nodeArgs, bundle, `--input-file=${input}`], {env, stdio: 'inherit'});
 
     const forwardedSignals: NodeJS.Signals[] = ['SIGINT', 'SIGTERM', 'SIGHUP'];
-    const forward = (signal: NodeJS.Signals) => child.kill(signal);
+    let forwardedSignal: NodeJS.Signals | null = null;
+    const forward = (signal: NodeJS.Signals) => {
+        forwardedSignal = signal;
+        child.kill(signal);
+    };
     for (const signal of forwardedSignals) {
         process.on(signal, forward);
     }
@@ -156,10 +161,10 @@ const dev = async (inputFile: string, inspectFlag: string | null): Promise<numbe
             for (const forwardedSignal of forwardedSignals) {
                 process.off(forwardedSignal, forward);
             }
-            if (signal) {
+            if (signal && signal === forwardedSignal) {
                 process.kill(process.pid, signal);
             }
-            resolvePromise(code ?? 1);
+            resolvePromise(code ?? (signal ? 128 + constants.signals[signal] : 1));
         });
     });
 };

@@ -230,8 +230,10 @@ await render(() => ({manifests: [{sum}]}));
     const result = run(dir, [cli, 'dev']);
 
     assert.ok(!existsSync(traceFile));
-    assert.notEqual(result.status, 0);
     assert.match(result.stderr, /Check failed: !IsFrozen\(\)/);
+    // The render is killed by a signal, which dev reports as an exit code instead of killing itself.
+    assert.equal(result.signal, null);
+    assert.ok(result.status > 128, `exit code ${result.status}`);
 });
 
 test('dev denies network access', {skip: nodeMajor < 26 && 'needs Node.js 26+'}, (t) => {
