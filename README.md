@@ -421,7 +421,7 @@ render(generate);
 Run:
 
 ```
-npx nelm-chart-ts dev --input-file context.yaml
+npm run dev -- --input-file context.yaml
 ```
 
 ## License
