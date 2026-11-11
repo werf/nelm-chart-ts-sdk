@@ -4,23 +4,25 @@
 
 TypeScript SDK for generating Kubernetes manifests with TypeScript instead of Helm templates.
 Published as `@nelm/chart-ts-sdk`. Users import types (`RenderContext`, `RenderResult`, etc.)
-and the `runRender` helper to build chart renderers that run under Deno.
+and the `render` helper to build chart renderers that run under Node.js.
+The `nelm-chart-ts dev` CLI renders a chart locally without Nelm.
 
-**Runtime**: Deno — uses `Deno.args`, `Deno.readTextFile`, `Deno.writeTextFile`.
+**Runtime**: Node.js — uses `process.argv` and `node:fs/promises`. Nelm runs the bundle with Node.js 26 or newer under `--permission`.
 **Module system**: ESM only (`"type": "module"`).
-**3 source files total.** Small, focused SDK.
+**4 source files total.** Small, focused SDK.
 
 ## Build & Development Commands
 
 ```bash
-npm run build          # tsup src/index.ts --format esm --dts
+npm run build          # tsup (config in tsup.config.ts)
+npm test               # build + node --test 'test/*.test.mjs'
 npx tsc --noEmit       # Type-check only (no emit)
 
-# No linter, formatter, or test framework configured.
+# No linter or formatter configured.
 # No dev/watch scripts.
 ```
 
-Build output: `dist/index.js` (ESM bundle) + `dist/index.d.ts` (declarations).
+Build output: `dist/index.js` (ESM bundle) + `dist/index.d.ts` (declarations) + `dist/cli.js` (the `nelm-chart-ts` bin).
 Built automatically on `prepublishOnly` and `prepack`.
 
 ## Project Structure
@@ -28,10 +30,12 @@ Built automatically on `prepublishOnly` and `prepack`.
 ```
 src/
 ├── index.ts              # Barrel re-exports from types/ and utils/
+├── cli.ts                # nelm-chart-ts CLI (not exported from the barrel)
 ├── types/
 │   └── index.ts          # All interfaces and type aliases
 └── utils/
-    └── index.ts          # runRender() — file I/O, YAML parse/serialize, handler invocation
+    └── index.ts          # render() — file I/O, YAML parse/serialize, handler invocation
+test/                     # node --test suites against dist/
 ```
 
 `dist/` and `node_modules/` are gitignored.
@@ -51,14 +55,13 @@ src/
 - **Named imports only** — no default imports, no namespace imports.
 - **Relative paths** for internal modules: `'../types'` (no path aliases).
 - **`node:` prefix** for Node.js built-ins: `"node:util"`.
-- **JSR specifiers** for Deno std libs: `"@std/yaml"`.
 - Prefer single quotes. Prefer semicolons.
 
 ```typescript
 // Correct
 import {RenderHandler, RenderContext} from '../types';
 import {parseArgs} from "node:util";
-import {parse, stringify} from "@std/yaml";
+import {load, dump} from "js-yaml";
 
 // Wrong
 import * as types from '../types';
@@ -98,7 +101,7 @@ export interface RenderResult {
 
 ### Functions
 
-- `export const` + arrow for async functions: `export const runRender = async (...) => { }`.
+- `export async function` for exported async functions: `export async function render(...) { }`; `const` + arrow for internal ones in `cli.ts`.
 - `export function` for synchronous helpers.
 - `$` is the conventional parameter name for `RenderContext`.
 - Explicit return types on exported functions.
@@ -112,8 +115,8 @@ export interface RenderResult {
 ### Error Handling
 
 - No custom error classes. Errors thrown directly via `new Error(...)`.
-- No try/catch in SDK — errors propagate to Deno runtime.
-- `runRender` validates handler output: throws if `manifests` is not an array.
+- No try/catch in `render()` — errors propagate to the Node.js runtime. `cli.ts` catches only to turn a failure into a message and an exit code.
+- `render` validates handler output: throws if `manifests` is not an array.
 
 ### Naming Conventions
 
@@ -122,7 +125,7 @@ export interface RenderResult {
 | Interfaces/Types     | PascalCase  | `RenderContext`, `RenderResult`      |
 | Helm-compat fields   | PascalCase  | `Release.Name`, `Chart.Version`      |
 | SDK-internal fields  | camelCase   | `manifests`                          |
-| Functions            | camelCase   | `runRender`, `fullname`              |
+| Functions            | camelCase   | `render`, `fullname`                 |
 | Variables/params     | camelCase   | `handler`, `ctx`                     |
 | RenderContext param  | `$`         | `function labels($: RenderContext)`  |
 | Directories          | lowercase   | `types/`, `utils/`                   |
@@ -134,24 +137,26 @@ export interface RenderResult {
 
 ## Runtime Behavior
 
-`runRender` reads YAML input from a file and writes YAML output to a file:
+`render` reads YAML input from a file and writes YAML output to a file:
 
-1. Parses `--input-file` and `--output-file` from `Deno.args`
+1. Parses `--input-file` and `--output-file` from `process.argv`
 2. Reads input file → deserializes YAML → `RenderContext`
-3. Calls handler, validates non-empty `manifests` array
+3. Calls handler, validates that `manifests` is an array
 4. Serializes manifests to multi-document YAML (joined by `---\n`)
-5. Writes to output file
+5. Writes to output file, or prints to stdout without `--output-file`
 
 ```
-deno run render.ts --input-file context.yaml --output-file manifests.yaml
+node bundle.js --input-file context.yaml --output-file manifests.yaml
 ```
 
 Do NOT change the file-based I/O contract — it is the IPC mechanism with the Nelm runtime.
+The esbuild options and the `node --permission` invocation in `src/cli.ts` must match Nelm's, except `--no-deprecation`, which only Nelm passes, and the source map (`sourcemap: 'linked'`, `--enable-source-maps`, read access to `.dev/bundle.js.map`), which only `dev` uses.
+With `--inspect`/`--inspect-brk`, `dev` runs without the sandbox: no `--permission`, the whole environment.
 
 ## Dependencies
 
-- **Runtime**: `@std/yaml` (via `npm:@jsr/std__yaml`) — YAML parse/serialize
-- **Dev**: `typescript`, `tsup`, `@types/node`, `@types/deno`
+- **Runtime**: `js-yaml` 5 — YAML parse/serialize; `esbuild` (exact version, matches Nelm's Go esbuild) — CLI bundling
+- **Dev**: `typescript`, `tsup`, `@types/node`
 
 Keep runtime dependencies minimal. Do not add new ones without explicit approval.
 
@@ -165,8 +170,7 @@ Keep runtime dependencies minimal. Do not add new ones without explicit approval
 
 ## Key Gotchas
 
-- **Deno runtime**: Code runs under Deno, not Node.js. `Deno.*` APIs are used directly.
-- **No tests**: No test infrastructure exists. If adding, choose a Deno-compatible runner.
+- **Sandboxed runtime**: The bundle runs under `node --permission` with an empty environment: only the input file is readable, only the output file is writable, no network.
+- **`node:` specifiers**: Keep them in `dist/` (`removeNodeProtocol: false`) — they are the only external imports allowed in a chart bundle.
 - **No linter/formatter**: Follow conventions in this doc.
 - **PascalCase properties**: Helm-compatible interfaces use Go-style naming. Do not "fix" to camelCase.
-- **`@std/yaml` is a JSR package**: Imported as `@std/yaml`, resolved via `@jsr:registry` in `.npmrc`.

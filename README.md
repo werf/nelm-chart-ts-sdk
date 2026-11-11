@@ -2,7 +2,7 @@
 
 TypeScript SDK for generating Kubernetes manifests with TypeScript instead of Helm templates.
 
-Runs under [Deno](https://deno.land). Reads a YAML render context from a file, passes it to your handler, and writes the resulting manifests as a multi-document YAML file.
+Runs under [Node.js](https://nodejs.org). Reads a YAML render context from a file, passes it to your handler, and writes the resulting manifests as a multi-document YAML file.
 
 ## Install
 
@@ -76,12 +76,46 @@ render(generate);
 1. Parses CLI arguments `--input-file` and `--output-file`
 2. Reads the input file as YAML and deserializes it into a `RenderContext`
 3. Calls your handler with the context
-4. Validates that the result contains a non-empty `manifests` array
-5. Serializes manifests into a multi-document YAML format separated by `---` and writes the output file (or print to console if, no output file is specified).
+4. Validates that the result contains a `manifests` array
+5. Serializes manifests into a multi-document YAML format separated by `---` and writes the output file (or prints them to stdout if no output file is specified).
+
+## Local Development
+
+Render a chart without Nelm with the `nelm-chart-ts` command from this package. Charts created by `nelm chart ts init` already have the `dev` script; otherwise add it to `ts/package.json`:
+
+```json
+{
+  "scripts": {
+    "dev": "nelm-chart-ts dev --input-file input.example.yaml",
+    "typecheck": "tsc"
+  }
+}
+```
+
+Run it from the `ts/` directory:
 
 ```
-deno run render.ts --input-file context.yaml --output-file manifests.yaml
+npm run dev
 ```
+
+The chart is built and rendered the same way Nelm does it, with the same restrictions: the chart code can read only the render input and cannot access the network, other files or environment variables. The manifests are printed to stdout, and errors point to lines in `src/`. `--input-file` defaults to `input.example.yaml`.
+
+Build output goes to `ts/.dev/`; add it to `.gitignore` and `.helmignore`.
+
+Use Node.js 26 or newer: on older versions the chart can access the network, and the command prints a warning.
+
+### Debugging
+
+```
+npm run dev -- --inspect-brk
+```
+
+`--inspect` and `--inspect-brk` work as in Node.js (`--inspect-brk` waits for a debugger before the chart code runs); the default address is `127.0.0.1:9229`. Breakpoints in `src/*.ts` work.
+
+- VS Code: run `npm run dev -- --inspect` in a JavaScript Debug Terminal.
+- Any other debugger that can attach to Node.js: attach to port 9229 (in Chrome, open `chrome://inspect`).
+
+While debugging, the chart runs without restrictions. To check it the way Nelm renders it, run `npm run dev`.
 
 ## API Reference
 
@@ -240,7 +274,7 @@ interface RenderResult {
 }
 ```
 
-The `manifests` array must be non-empty — `render` throws if it's null, undefined, or empty.
+`render` throws if `manifests` is not an array. An empty array renders no manifests.
 
 ## Full Example
 
@@ -300,7 +334,7 @@ Values:
     type: ClusterIP
 ```
 
-Render script (`render.ts`):
+Render script (`src/index.ts`):
 ```ts
 import {RenderContext, RenderResult, render} from "@nelm/chart-ts-sdk";
 
@@ -387,7 +421,7 @@ render(generate);
 Run:
 
 ```
-deno run render.ts --input-file context.yaml --output-file manifests.yaml
+npm run dev -- --input-file context.yaml
 ```
 
 ## License
