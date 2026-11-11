@@ -79,53 +79,30 @@ render(generate);
 4. Validates that the result contains a `manifests` array
 5. Serializes manifests into a multi-document YAML format separated by `---` and writes the output file (or prints them to stdout if no output file is specified).
 
-Nelm bundles the chart with esbuild and passes the bundle to Node.js through stdin:
-
-```
-node --permission --no-experimental-sqlite --freeze-flags-after-init --no-deprecation --allow-fs-read=<input-file> --allow-fs-write=<output-file> \
-  --input-type=module - --input-file=<input-file> --output-file=<output-file>
-```
-
 ## Local Development
 
-The package provides the `nelm-chart-ts` command for rendering a chart without Nelm. Add it to the `package.json` of the chart's `ts/` directory:
+Render a chart without Nelm with the `nelm-chart-ts` command from this package. Charts created by `nelm chart ts init` already have the `dev` script; otherwise add it to `ts/package.json`:
 
 ```json
 {
-  "type": "module",
-  "private": true,
   "scripts": {
     "dev": "nelm-chart-ts dev --input-file input.example.yaml",
     "typecheck": "tsc"
-  },
-  "dependencies": {
-    "@nelm/chart-ts-sdk": "^0.2.0"
-  },
-  "devDependencies": {
-    "typescript": "~6.0.3"
   }
 }
 ```
 
-Then run it from the `ts/` directory:
+Run it from the `ts/` directory:
 
 ```
 npm run dev
 ```
 
-### `nelm-chart-ts dev [--input-file <path>] [--inspect[=[host:]port] | --inspect-brk[=[host:]port]]`
+The chart is built and rendered the same way Nelm does it, with the same restrictions: the chart code can read only the render input and cannot access the network, other files or environment variables. The manifests are printed to stdout, and errors point to lines in `src/`. `--input-file` defaults to `input.example.yaml`.
 
-Renders the chart the same way Nelm does and prints the manifests to stdout:
+Build output goes to `ts/.dev/`; add it to `.gitignore` and `.helmignore`.
 
-1. Bundles `src/index.ts` (or `src/index.js`, if there is no `src/index.ts`) with esbuild into `.dev/bundle.js`, using the same build options as Nelm, plus a source map in `.dev/bundle.js.map`.
-2. Runs the bundle with the current `node` under `--permission` and `--enable-source-maps`, with an empty environment, allowing it to read only the bundle, its source map and the input file. Stack traces point to `src/*.ts`.
-3. Exits with the exit code of the render.
-
-Unlike Nelm, it does not pass `--no-deprecation`, so Node.js deprecation warnings from dependencies stay visible on stderr.
-
-`--input-file` defaults to `input.example.yaml`. Add `.dev/` to `.gitignore` and `.helmignore`.
-
-Use Node.js 26 or newer: older versions do not restrict network access under `--permission`, and the command prints a warning on them.
+Use Node.js 26 or newer: on older versions the chart can access the network, and the command prints a warning.
 
 ### Debugging
 
@@ -133,14 +110,12 @@ Use Node.js 26 or newer: older versions do not restrict network access under `--
 npm run dev -- --inspect-brk
 ```
 
-`--inspect[=[host:]port]` and `--inspect-brk[=[host:]port]` are passed to Node.js: `--inspect-brk` waits for a debugger before the chart code runs, `--inspect` does not wait. The default address is `127.0.0.1:9229`. Breakpoints in `src/*.ts` work through the source map.
+`--inspect` and `--inspect-brk` work as in Node.js (`--inspect-brk` waits for a debugger before the chart code runs); the default address is `127.0.0.1:9229`. Breakpoints in `src/*.ts` work.
 
-Connect a debugger:
+- VS Code: run `npm run dev -- --inspect` in a JavaScript Debug Terminal.
+- Any other debugger that can attach to Node.js: attach to port 9229 (in Chrome, open `chrome://inspect`).
 
-- VS Code: run `npm run dev -- --inspect` in a JavaScript Debug Terminal, and the debugger attaches by itself. Or run `npm run dev -- --inspect-brk` in any terminal and attach to port 9229 with a launch configuration of `"type": "node", "request": "attach", "port": 9229`.
-- Chrome: open `chrome://inspect` and select the process under Remote Target.
-
-The sandbox is disabled while debugging, so that debuggers can attach: the chart runs without `--permission` and with the whole environment of the terminal, so it can access any file, the network and environment variables. The command prints a warning about this. To check the chart the way Nelm renders it, run `npm run dev` without `--inspect`.
+While debugging, the chart runs without restrictions. To check it the way Nelm renders it, run `npm run dev`.
 
 ## API Reference
 
