@@ -105,10 +105,12 @@ test('dev fails on a build error', (t) => {
     assert.match(result.stderr, /Could not resolve "\.\/missing\.ts"/);
 });
 
-test('dev reports an esbuild failure that is not a build error', {skip: process.platform === 'win32' && 'needs /usr/bin/false'}, (t) => {
+test('dev reports an esbuild failure that is not a build error', {skip: process.platform === 'win32' && 'needs a shell script as the esbuild binary'}, (t) => {
     const dir = makeChartDir(t, {'src/index.ts': chart, 'input.example.yaml': inputYaml});
+    const failingBinary = join(dir, 'failing-esbuild');
+    writeFileSync(failingBinary, '#!/bin/sh\nexit 1\n', {mode: 0o755});
 
-    const result = run(dir, [cli, 'dev'], {...process.env, ESBUILD_BINARY_PATH: '/usr/bin/false'});
+    const result = run(dir, [cli, 'dev'], {...process.env, ESBUILD_BINARY_PATH: failingBinary});
 
     assert.equal(result.status, 1);
     assert.match(result.stderr, /Failed to bundle src\/index\.ts: /);
@@ -298,8 +300,22 @@ test('dev --inspect runs the chart without the sandbox', (t) => {
 test('dev --inspect-brk waits for the debugger', {timeout: 10_000}, async (t) => {
     const dir = makeChartDir(t, {'src/index.ts': debugChart, 'input.example.yaml': inputYaml});
 
-    const cliProcess = spawn(process.execPath, [cli, 'dev', '--inspect-brk=127.0.0.1:0'], {cwd: dir});
-    t.after(() => cliProcess.kill('SIGKILL'));
+    // In its own process group, so that a failed test can also kill the render waiting for the debugger.
+    const ownGroup = process.platform !== 'win32';
+    const cliProcess = spawn(process.execPath, [cli, 'dev', '--inspect-brk=127.0.0.1:0'], {cwd: dir, detached: ownGroup});
+    let socket;
+    t.after(() => {
+        socket?.close();
+        try {
+            if (ownGroup) {
+                process.kill(-cliProcess.pid, 'SIGKILL');
+            } else {
+                cliProcess.kill('SIGKILL');
+            }
+        } catch {
+            // Already exited.
+        }
+    });
     let stdout = '';
     let stderr = '';
     cliProcess.stdout.on('data', (chunk) => stdout += chunk);
@@ -312,7 +328,7 @@ test('dev --inspect-brk waits for the debugger', {timeout: 10_000}, async (t) =>
         cliProcess.once('exit', () => reject(new Error(`dev exited before the debugger started: ${stderr}`)));
     });
 
-    const socket = new WebSocket(debuggerUrl);
+    socket = new WebSocket(debuggerUrl);
     await once(socket, 'open');
     socket.send(JSON.stringify({id: 1, method: 'Runtime.runIfWaitingForDebugger'}));
     await new Promise((resolve) => socket.addEventListener('message', (event) => {
