@@ -268,6 +268,18 @@ const debugChart = `import {render} from '@nelm/chart-ts-sdk';
 await render(() => ({manifests: [{execArgv: process.execArgv, secret: process.env.NELM_CHART_TS_TEST_SECRET ?? 'unset'}]}));
 `;
 
+test('dev fails clearly on Node.js without --permission', (t) => {
+    const dir = makeChartDir(t, {'src/index.ts': chart, 'input.example.yaml': inputYaml});
+    const withoutPermission = `${withNodeVersion('20.20.2')} Object.defineProperty(process, 'allowedNodeEnvironmentFlags', {value: new Set()});`;
+
+    const result = run(dir, ['--import', withoutPermission, cli, 'dev']);
+
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /Node\.js v20\.20\.2 does not support --permission, use Node\.js 26 or newer\./);
+    assert.doesNotMatch(result.stderr, /bad option/);
+    assert.ok(!existsSync(join(dir, '.dev')));
+});
+
 test('dev --inspect runs the chart without the sandbox', (t) => {
     const dir = makeChartDir(t, {'src/index.ts': debugChart, 'input.example.yaml': inputYaml});
 

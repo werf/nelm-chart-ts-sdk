@@ -57,6 +57,9 @@ const parseCliArgs = (): {inputFile: string, inspectFlag: string | null} => {
 };
 
 const dev = async (inputFile: string, inspectFlag: string | null): Promise<number> => {
+    if (!process.allowedNodeEnvironmentFlags.has('--permission')) {
+        return fail(`Node.js ${process.version} does not support --permission, use Node.js 26 or newer.`);
+    }
     const major = Number(process.versions.node.split('.')[0]);
     if (major < 26) {
         console.error(`Warning: Node.js ${process.version} does not restrict network access under --permission, use Node.js 26 or newer.`);
