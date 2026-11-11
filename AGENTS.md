@@ -140,7 +140,7 @@ export interface RenderResult {
 `render` reads YAML input from a file and writes YAML output to a file:
 
 1. Parses `--input-file` and `--output-file` from `process.argv`
-2. Reads input file → deserializes YAML the way Nelm reads values (sigs.k8s.io/yaml) → `RenderContext`
+2. Reads input file → deserializes YAML → `RenderContext`
 3. Calls handler, validates that `manifests` is an array
 4. Serializes manifests to multi-document YAML (joined by `---\n`)
 5. Writes to output file, or prints to stdout without `--output-file`
