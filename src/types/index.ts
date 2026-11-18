@@ -1,120 +1,125 @@
+// biome-ignore-all lint/suspicious/noExplicitAny: Keep the public types of untyped chart values and runtime metadata compatible.
 export interface WerfCommitDate {
-    human: string;
-    unix: number;
+  human: string;
+  unix: number;
 }
 
 export interface WerfCommit {
-    hash: string;
-    date: WerfCommitDate;
+  hash: string;
+  date: WerfCommitDate;
 }
 
 export interface WerfImageInfo {
-    registry: string;
-    namespace: string;
-    name: string;
-    tag: string;
-    digest: string;
-    tag_digest: string;
-    image: string;
-    repository: string;
-    ref: string;
-    ref_tag: string;
-    repository_ref: string;
-    repository_tag: string;
-    name_ref: string;
-    name_tag: string;
+  registry: string;
+  namespace: string;
+  name: string;
+  tag: string;
+  digest: string;
+  tag_digest: string;
+  image: string;
+  repository: string;
+  ref: string;
+  ref_tag: string;
+  repository_ref: string;
+  repository_tag: string;
+  name_ref: string;
+  name_tag: string;
 }
 
 export interface WerfInfo {
-    name: string;
-    version: string;
-    repo: string;
-    commit: WerfCommit;
-    images: Record<string, WerfImageInfo>;
-    namespace?: string;
-    env?: string;
-    is_stub?: boolean;
-    stub_image?: string;
-    dockerconfigjson?: string;
+  name: string;
+  version: string;
+  repo: string;
+  commit: WerfCommit;
+  images: Record<string, WerfImageInfo>;
+  namespace?: string;
+  env?: string;
+  is_stub?: boolean;
+  stub_image?: string;
+  dockerconfigjson?: string;
 }
 
 export interface GlobalValues {
-    werf: WerfInfo;
+  werf: WerfInfo;
 }
 
 export interface WerfServiceValues extends Record<string, any> {
-    global: GlobalValues;
+  global: GlobalValues;
 }
 
 export interface BaseRenderContext {
-    Release: Release;
-    Chart: ChartMetadata;
-    Capabilities: Capabilities;
-    Runtime: Record<string, any>;
-    Files: Record<string, Uint8Array>;
+  Release: Release;
+  Chart: ChartMetadata;
+  Capabilities: Capabilities;
+  Runtime: Record<string, any>;
+  Files: Record<string, Uint8Array>;
 }
 
-export interface RenderContext<ValuesType = Record<string, any>> extends BaseRenderContext {
-    Values: ValuesType;
+export interface RenderContext<ValuesType = Record<string, any>>
+  extends BaseRenderContext {
+  Values: ValuesType;
 }
 
-export interface WerfRenderContext<ValuesType = Record<string, any>> extends RenderContext {
-    Values: WerfServiceValues & ValuesType;
+export interface WerfRenderContext<ValuesType = Record<string, any>>
+  extends RenderContext {
+  Values: WerfServiceValues & ValuesType;
 }
 
 export interface Release {
-    Name: string;
-    Namespace: string;
-    Revision: number;
-    IsInstall: boolean;
-    IsUpgrade: boolean;
-    Service: string;
+  Name: string;
+  Namespace: string;
+  Revision: number;
+  IsInstall: boolean;
+  IsUpgrade: boolean;
+  Service: string;
 }
 
 export interface ChartMetadata {
-    Name: string;
-    Version: string;
-    AppVersion: string;
-    Description: string;
-    Home: string;
-    Icon: string;
-    APIVersion: string;
-    Condition: string;
-    Tags: string[];
-    Type: string;
-    Keywords: string[];
-    Sources: string[];
-    Maintainers: Maintainer[];
-    Annotations: Record<string, string>;
+  Name: string;
+  Version: string;
+  AppVersion: string;
+  Description: string;
+  Home: string;
+  Icon: string;
+  APIVersion: string;
+  Condition: string;
+  Tags: string[];
+  Type: string;
+  Keywords: string[];
+  Sources: string[];
+  Maintainers: Maintainer[];
+  Annotations: Record<string, string>;
 }
 
 export interface Maintainer {
-    Name: string;
-    Email: string;
-    URL: string;
+  Name: string;
+  Email: string;
+  URL: string;
 }
 
 export interface Capabilities {
-    APIVersions: string[];
-    KubeVersion: KubeVersion;
-    HelmVersion: HelmVersion;
+  APIVersions: string[];
+  KubeVersion: KubeVersion;
+  HelmVersion: HelmVersion;
 }
 
 export interface KubeVersion {
-    Version: string;
-    Major: string;
-    Minor: string;
+  Version: string;
+  Major: string;
+  Minor: string;
 }
 
 export interface HelmVersion {
-    Version: string;
-    GitCommit: string;
-    GitTreeState: string;
-    GoVersion: string;
+  Version: string;
+  GitCommit: string;
+  GitTreeState: string;
+  GoVersion: string;
 }
 
 export interface RenderResult {
-    manifests: object[] | null;
+  manifests: object[] | null;
 }
 
-export type RenderHandler<CtxType extends BaseRenderContext = RenderContext> = ($: CtxType) => Promise<RenderResult> | RenderResult;
+export type RenderHandler<CtxType extends BaseRenderContext = RenderContext> = (
+  $: CtxType,
+) => Promise<RenderResult> | RenderResult;
