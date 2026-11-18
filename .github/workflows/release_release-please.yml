@@ -12,6 +12,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       release_created: ${{ steps.release.outputs.release_created }}
+      sha: ${{ steps.release.outputs.sha }}
     steps:
       - name: Release
         id: release
@@ -29,8 +30,10 @@ jobs:
       contents: read
       id-token: write
     steps:
-      - name: Checkout code
+      - name: Check out release commit
         uses: actions/checkout@v6
+        with:
+          ref: ${{ needs.release-please.outputs.sha }}
 
       - name: Set up Node.js
         uses: actions/setup-node@v6
