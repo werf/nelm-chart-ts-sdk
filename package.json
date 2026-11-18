@@ -20,6 +20,8 @@
   "scripts": {
     "build": "tsup",
     "test": "npm run build && node --test \"test/*.test.mjs\"",
+    "lint": "biome ci",
+    "format": "biome format --write",
     "prepublishOnly": "npm run build",
     "prepack": "npm run build"
   },
@@ -46,6 +48,7 @@
     "alexey-igrychev"
   ],
   "devDependencies": {
+    "@biomejs/biome": "2.6.8",
     "@types/node": "^25.2.3",
     "tsup": "^8.5.1",
     "typescript": "^5.0.0"

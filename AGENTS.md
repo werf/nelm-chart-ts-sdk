@@ -16,9 +16,10 @@ The `nelm-chart-ts dev` CLI renders a chart locally without Nelm.
 ```bash
 npm run build          # tsup (config in tsup.config.ts)
 npm test               # build + node --test 'test/*.test.mjs'
+npm run lint           # Check code, formatting, and import order with Biome
+npm run format         # Apply Biome formatting
 npx tsc --noEmit       # Type-check only (no emit)
 
-# No linter or formatter configured.
 # No dev/watch scripts.
 ```
 
@@ -53,25 +54,25 @@ test/                     # node --test suites against dist/
 ### Imports
 
 - **Named imports only** — no default imports, no namespace imports.
-- **Relative paths** for internal modules: `'../types'` (no path aliases).
+- **Relative paths** for internal modules: `"../types"` (no path aliases).
 - **`node:` prefix** for Node.js built-ins: `"node:util"`.
-- Prefer single quotes. Prefer semicolons.
+- Biome formats JavaScript and TypeScript with two spaces, double quotes, and semicolons.
 
 ```typescript
 // Correct
-import {RenderHandler, RenderContext} from '../types';
-import {parseArgs} from "node:util";
-import {load, dump} from "js-yaml";
+import { parseArgs } from "node:util";
+import { dump, load } from "js-yaml";
+import type { RenderContext, RenderHandler } from "../types";
 
 // Wrong
-import * as types from '../types';
-import RenderContext from '../types';
+import * as types from "../types";
+import RenderContext from "../types";
 ```
 
 ### Module Organization
 
 - Barrel exports via `index.ts` in each directory.
-- Root `src/index.ts` re-exports everything: `export * from './types/index'`.
+- Root `src/index.ts` re-exports everything: `export * from "./types/index";`.
 - All public types/functions MUST flow through the barrel chain.
 - New modules: create directory with `index.ts`, add `export *` in parent barrel.
 
@@ -87,15 +88,15 @@ import RenderContext from '../types';
 ```typescript
 // Helm-compatible — PascalCase properties
 export interface Release {
-    Name: string;
-    Namespace: string;
-    IsInstall: boolean;
-    IsUpgrade: boolean;
+  Name: string;
+  Namespace: string;
+  IsInstall: boolean;
+  IsUpgrade: boolean;
 }
 
 // SDK-internal — camelCase properties
 export interface RenderResult {
-    manifests: object[] | null;
+  manifests: object[] | null;
 }
 ```
 
@@ -172,5 +173,4 @@ Keep runtime dependencies minimal. Do not add new ones without explicit approval
 
 - **Sandboxed runtime**: The bundle runs under `node --permission` with an empty environment: only the input file is readable, only the output file is writable, no network.
 - **`node:` specifiers**: Keep them in `dist/` (`removeNodeProtocol: false`) — they are the only external imports allowed in a chart bundle.
-- **No linter/formatter**: Follow conventions in this doc.
 - **PascalCase properties**: Helm-compatible interfaces use Go-style naming. Do not "fix" to camelCase.
